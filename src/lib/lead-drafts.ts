@@ -65,7 +65,8 @@ const lePetitMeunier: RestaurantDraft = {
           price: 16,
           currency: "EUR",
           dietaryLabels: [],
-          imageUrl: null,
+          imageUrl:
+            "/images/le-petit-meunier/panna-cotta-parmesan.webp",
         },
         {
           name: "Roulé d’aubergine et ricotta",
@@ -122,7 +123,7 @@ const lePetitMeunier: RestaurantDraft = {
           price: 22,
           currency: "EUR",
           dietaryLabels: [],
-          imageUrl: null,
+          imageUrl: "/images/le-petit-meunier/salmon-tataki.webp",
         },
         {
           name: "Gambas grillées",
@@ -148,7 +149,7 @@ const lePetitMeunier: RestaurantDraft = {
           price: 27,
           currency: "EUR",
           dietaryLabels: [],
-          imageUrl: null,
+          imageUrl: "/images/le-petit-meunier/duck-breast.webp",
         },
         {
           name: "Faux-filet de Wagyu",
@@ -179,7 +180,8 @@ const lePetitMeunier: RestaurantDraft = {
           price: 9,
           currency: "EUR",
           dietaryLabels: [],
-          imageUrl: null,
+          imageUrl:
+            "/images/le-petit-meunier/strawberry-pavlova.webp",
         },
         {
           name: "Sphère en chocolat noir",

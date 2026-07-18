@@ -6,6 +6,7 @@ import {
 } from "@/lib/ai/restaurant-generation";
 import { inspectSource, type ExtractedRestaurant } from "@/lib/importer";
 import type { RestaurantDraft } from "@/lib/restaurant";
+import { buildRestaurantPhotographyDirection } from "@/lib/restaurant-templates";
 import { storeRestaurantImage } from "@/lib/storage/images";
 
 export type RestaurantImportEvent =
@@ -46,7 +47,7 @@ export async function restaurantImportWorkflow(
   const draft = await composeDraft(extracted);
   const illustratedDraft = await illustrateDraft(
     draft,
-    Boolean(extracted.heroImageUrl),
+    extracted.heroImageUrl ? [extracted.heroImageUrl] : [],
   );
   await emit({
     type: "progress",
@@ -199,12 +200,11 @@ async function persistDraft(draft: RestaurantDraft): Promise<void> {
 
 async function illustrateDraft(
   draft: RestaurantDraft,
-  sourceHadHero: boolean,
+  referenceImageUrls: string[],
 ): Promise<RestaurantDraft> {
   "use step";
   console.log(`[restaurant-import:illustrate] START slug=${draft.slug}`);
   if (
-    sourceHadHero ||
     !process.env.BLOB_READ_WRITE_TOKEN ||
     (!process.env.VERCEL_OIDC_TOKEN && !process.env.AI_GATEWAY_API_KEY)
   ) {
@@ -212,26 +212,103 @@ async function illustrateDraft(
     return draft;
   }
 
-  try {
-    const image = await generateFoodImage(
-      `${draft.cuisine} signature dish for ${draft.name}, consistent with this description: ${draft.description}`,
-    );
-    const heroImageUrl = await storeRestaurantImage({
-      restaurantSlug: draft.slug,
-      data: image.data,
-      mediaType: image.mediaType,
-      purpose: "hero",
-    });
-    console.log(`[restaurant-import:illustrate] DONE slug=${draft.slug}`);
-    return { ...draft, heroImageUrl };
-  } catch (error) {
-    console.warn(
-      `[restaurant-import:illustrate] FALLBACK slug=${draft.slug} error=${
-        error instanceof Error ? error.message : "unknown"
-      }`,
-    );
-    return draft;
+  const photographyDirection = buildRestaurantPhotographyDirection(draft);
+  const menuCandidates = draft.menuSections
+    .flatMap((section, sectionIndex) =>
+      section.items.map((item, itemIndex) => ({
+        item,
+        itemIndex,
+        sectionIndex,
+      })),
+    )
+    .filter(
+      ({ item }) =>
+        !item.imageUrl &&
+        item.description &&
+        !/^(menu|formule|plat du jour|chef'?s choice|prix fixe)/i.test(
+          item.name,
+        ),
+    )
+    .slice(0, 3);
+
+  const heroPromise = draft.heroImageUrl
+    ? Promise.resolve(draft.heroImageUrl)
+    : generateFoodImage({
+        prompt: `${draft.cuisine} signature dish for ${draft.name}. Restaurant description: ${draft.description}`,
+        photographyDirection,
+        referenceImageUrls,
+      })
+        .then((image) =>
+          storeRestaurantImage({
+            restaurantSlug: draft.slug,
+            data: image.data,
+            mediaType: image.mediaType,
+            purpose: "hero",
+          }),
+        )
+        .catch((error) => {
+          console.warn(
+            `[restaurant-import:illustrate] HERO_FALLBACK slug=${draft.slug} error=${
+              error instanceof Error ? error.message : "unknown"
+            }`,
+          );
+          return draft.heroImageUrl;
+        });
+
+  const menuResultsPromise = Promise.all(
+    menuCandidates.map(async ({ item, itemIndex, sectionIndex }) => {
+      try {
+        const image = await generateFoodImage({
+          prompt: `${item.name}. Dish description: ${item.description}. Cuisine: ${draft.cuisine}.`,
+          photographyDirection,
+          referenceImageUrls,
+        });
+        const imageUrl = await storeRestaurantImage({
+          restaurantSlug: draft.slug,
+          data: image.data,
+          mediaType: image.mediaType,
+          purpose: "menu",
+        });
+        return { imageUrl, itemIndex, sectionIndex };
+      } catch (error) {
+        console.warn(
+          `[restaurant-import:illustrate] MENU_FALLBACK slug=${draft.slug} item=${item.name} error=${
+            error instanceof Error ? error.message : "unknown"
+          }`,
+        );
+        return null;
+      }
+    }),
+  );
+
+  const [heroImageUrl, menuResults] = await Promise.all([
+    heroPromise,
+    menuResultsPromise,
+  ]);
+  const generatedMenuImages = new Map<string, string>();
+  for (const result of menuResults) {
+    if (result) {
+      generatedMenuImages.set(
+        `${result.sectionIndex}:${result.itemIndex}`,
+        result.imageUrl,
+      );
+    }
   }
+
+  const menuSections = draft.menuSections.map((section, sectionIndex) => ({
+    ...section,
+    items: section.items.map((item, itemIndex) => ({
+      ...item,
+      imageUrl:
+        generatedMenuImages.get(`${sectionIndex}:${itemIndex}`) ??
+        item.imageUrl,
+    })),
+  }));
+
+  console.log(
+    `[restaurant-import:illustrate] DONE slug=${draft.slug} menuImages=${generatedMenuImages.size}`,
+  );
+  return { ...draft, heroImageUrl, menuSections };
 }
 
 async function emitComplete(draft: RestaurantDraft): Promise<void> {

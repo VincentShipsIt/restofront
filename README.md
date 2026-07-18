@@ -7,11 +7,29 @@ Restofront turns an existing restaurant website—or just a restaurant name—in
 1. Paste a restaurant URL or name.
 2. Import public website content with SSRF-safe fetching and bounded HTML reads.
 3. Recover the menu, contact details, imagery, and external integrations.
-4. Generate a structured website draft with AI Gateway when configured, or a deterministic demo draft locally.
-5. Save a private preview through a durable Vercel Workflow.
-6. Claim the restaurant through Stripe Checkout; the completed checkout creates the prefilled owner account.
-7. Attach the restaurant domain to the Vercel project and show the exact DNS records.
-8. Monitor and maintain the menu, imagery, and external links from the dashboard.
+4. Derive the colour palette from the source branding and select a cuisine-aware layout.
+5. Generate a structured website draft with AI Gateway when configured, or a deterministic demo draft locally.
+6. Reuse source photography as visual direction and generate up to three missing dish images as one consistent restaurant campaign.
+7. Save a private preview through a durable Vercel Workflow.
+8. Claim the restaurant through Stripe Checkout; the completed checkout creates the prefilled owner account.
+9. Attach the restaurant domain to the Vercel project and show the exact DNS records.
+10. Monitor and maintain the menu, imagery, and external links from the dashboard.
+
+## Restaurant templates
+
+Restaurant sites use Geist Sans rather than the Restofront marketing display
+font. The renderer automatically combines the imported brand palette with a
+cuisine-aware layout:
+
+- `heritage` — French, bistro, brasserie, and traditional restaurants
+- `fresh` — healthy, vegan, vegetarian, organic, salad, and juice concepts
+- `bold` — American, burger, barbecue, steak, and diner concepts
+- `nocturne` — Japanese, sushi, ramen, izakaya, and Korean concepts
+- `coastal` — seafood, fish, oyster, and coastal restaurants
+- `warm` — Italian, pizza, pasta, Mediterranean, Spanish, and fallback concepts
+
+Each template changes the hero structure, menu layout, weight, spacing, image
+treatment, and copy—not only the colours.
 
 ## Stack
 
@@ -77,7 +95,10 @@ Create a Vercel Blob store linked to the project:
 - `BLOB_READ_WRITE_TOKEN`
 
 Generated hero and menu images are uploaded to public Blob URLs so they remain
-available across browsers and deployments.
+available across browsers and deployments. When source photography is available,
+up to three HTTPS images are supplied as visual-identity references. Every dish
+receives the same restaurant-specific camera, plate, tabletop, lighting, and
+colour-grade direction.
 
 ### Preview abuse protection
 

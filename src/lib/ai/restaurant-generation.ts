@@ -87,7 +87,7 @@ Rules:
 - Preserve every menu item and price that can be recovered.
 - Never invent menu items. If menu data is incomplete, return an empty menu section with a factual explanation.
 - Use concise, warm hospitality copy without AI clichés.
-- Return three accessible hex colours in palette.
+- Return three accessible hex colours in palette, derived from the source website's visible branding and photography rather than a generic restaurant palette.
 - sourceUrl must be ${source.sourceUrl ?? "null"}.
 - heroImageUrl must be ${source.heroImageUrl ?? "null"}.
 
@@ -116,7 +116,26 @@ ${source.pageText.slice(0, 60_000)}`,
   return draft;
 }
 
-export async function generateFoodImage(prompt: string): Promise<{
+export type FoodImageRequest = {
+  prompt: string;
+  photographyDirection?: string;
+  referenceImageUrls?: string[];
+};
+
+function parseReferenceImageUrls(urls: string[] = []): URL[] {
+  return urls.slice(0, 3).flatMap((value) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" ? [url] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+export async function generateFoodImage(
+  input: string | FoodImageRequest,
+): Promise<{
   data: Uint8Array;
   mediaType: string;
 }> {
@@ -124,11 +143,31 @@ export async function generateFoodImage(prompt: string): Promise<{
     throw new Error("AI Gateway is not configured");
   }
 
+  const request = typeof input === "string" ? { prompt: input } : input;
+  const references = parseReferenceImageUrls(request.referenceImageUrls);
+  const direction = request.photographyDirection
+    ? `Restaurant photography direction: ${request.photographyDirection}`
+    : "";
   const result = await generateText({
     model:
       process.env.AI_IMAGE_MODEL ??
       "google/gemini-3.1-flash-image-preview",
-    prompt: `Editorial restaurant photography, natural window light, believable food styling, no text, no logos, no people, premium but not over-produced. ${prompt}`,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `Create one believable restaurant food photograph for the restaurant's own website. Use realistic portions and ingredient textures. Keep the camera, plate family, tabletop, lighting direction and colour grade consistent with the supplied restaurant direction and reference photography. The reference images define visual identity only; do not copy their pictured dishes. No text, logos, people, decorative flowers, impossible ingredients or generic stock-photo styling.
+
+${direction}
+
+Dish request: ${request.prompt}`,
+          },
+          ...references.map((image) => ({ type: "image" as const, image })),
+        ],
+      },
+    ],
     timeout: { totalMs: 60_000 },
     experimental_include: {
       requestBody: false,

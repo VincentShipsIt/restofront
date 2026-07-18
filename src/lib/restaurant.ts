@@ -6,7 +6,10 @@ export const menuItemSchema = z.object({
   price: z.number().nonnegative().nullable().default(null),
   currency: z.string().length(3).default("EUR"),
   dietaryLabels: z.array(z.string().max(30)).max(6).default([]),
-  imageUrl: z.url().nullable().default(null),
+  imageUrl: z
+    .union([z.url(), z.string().regex(/^\/[a-zA-Z0-9/_\-.]+$/)])
+    .nullable()
+    .default(null),
 });
 
 export const menuSectionSchema = z.object({
