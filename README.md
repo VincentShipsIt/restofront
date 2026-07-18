@@ -19,7 +19,8 @@ Restofront turns an existing restaurant website—or just a restaurant name—in
 - Bun
 - Tailwind CSS v4 and shadcn/ui
 - Prisma 7 with PostgreSQL and the `pg` driver adapter
-- Vercel AI SDK 6 and AI Gateway
+- Vercel AI SDK 6 with OpenRouter Auto for structured text generation
+- Vercel AI Gateway for optional generated imagery
 - Vercel Workflow DevKit
 - Vercel Blob for persistent generated imagery
 - Upstash Redis for public preview rate limits
@@ -52,7 +53,18 @@ bunx --bun prisma migrate deploy
 
 ### AI generation
 
-Link the Vercel project and enable AI Gateway. Vercel provisions `VERCEL_OIDC_TOKEN` automatically in deployments.
+Restaurant crawling, same-origin page discovery, SSRF checks, contact recovery,
+and integration detection run locally without a model. OpenRouter is used only
+to normalize recovered content into a structured restaurant draft:
+
+- `OPENROUTER_API_KEY`
+- `OPENROUTER_TEXT_MODEL` defaults to `openrouter/auto`
+
+OpenRouter Auto selects a compatible language model per import. Structured output
+is schema validated before it is persisted.
+
+For optional generated imagery, link the Vercel project and enable AI Gateway.
+Vercel provisions `VERCEL_OIDC_TOKEN` automatically in deployments.
 
 - `AI_TEXT_MODEL` defaults to `openai/gpt-5.4`
 - `AI_IMAGE_MODEL` defaults to `google/gemini-3.1-flash-image-preview`

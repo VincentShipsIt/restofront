@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { leadDrafts } from "@/lib/lead-drafts";
 import {
   restaurantDraftSchema,
   sampleRestaurant,
@@ -8,8 +9,9 @@ import {
 export async function getRestaurantDraft(
   slug: string,
 ): Promise<RestaurantDraft> {
+  const leadDraft = leadDrafts[slug];
   if (!process.env.DATABASE_URL) {
-    return { ...sampleRestaurant, slug };
+    return leadDraft ?? { ...sampleRestaurant, slug };
   }
 
   const restaurant = await getDb().restaurant.findUnique({
@@ -24,7 +26,7 @@ export async function getRestaurantDraft(
     },
   });
 
-  if (!restaurant) return { ...sampleRestaurant, slug };
+  if (!restaurant) return leadDraft ?? { ...sampleRestaurant, slug };
   const latestTheme = restaurant.siteVersions[0]?.theme as
     | RestaurantDraft["palette"]
     | undefined;
