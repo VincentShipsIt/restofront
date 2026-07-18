@@ -34,6 +34,7 @@ import {
   formatPrice,
   type RestaurantDraft,
 } from "@/lib/restaurant";
+import { buildRestaurantPhotographyDirection } from "@/lib/restaurant-templates";
 
 type DomainSetup = {
   hostname: string;
@@ -116,6 +117,19 @@ export function Dashboard({
         body: JSON.stringify({
           prompt: `${draft.cuisine} signature dish for ${draft.name}, visually consistent with a warm independent neighbourhood restaurant`,
           restaurantSlug: draft.slug,
+          photographyDirection:
+            buildRestaurantPhotographyDirection(draft),
+          referenceImageUrls: [
+            draft.heroImageUrl,
+            ...draft.menuSections.flatMap((section) =>
+              section.items.map((item) => item.imageUrl),
+            ),
+          ]
+            .filter(
+              (url): url is string =>
+                Boolean(url?.startsWith("https://")),
+            )
+            .slice(0, 3),
         }),
       });
       const result = (await response.json()) as {
