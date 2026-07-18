@@ -21,6 +21,8 @@ Restofront turns an existing restaurant website—or just a restaurant name—in
 - Prisma 7 with PostgreSQL and the `pg` driver adapter
 - Vercel AI SDK 6 and AI Gateway
 - Vercel Workflow DevKit
+- Vercel Blob for persistent generated imagery
+- Upstash Redis for public preview rate limits
 - Stripe subscriptions
 - Resend passwordless sign-in links
 - Vercel Projects API for customer domains
@@ -35,10 +37,11 @@ bun run dev
 
 The marketing site and deterministic preview flow work without external credentials. Production integrations activate when their environment variables are configured.
 
-Do not run migrations against production from a local machine. Create the database, then apply the schema through the deployment workflow:
+Do not run migrations against production from a local machine. Create the
+database, then apply the committed migrations through the deployment workflow:
 
 ```bash
-bunx --bun prisma migrate dev --name init
+bunx --bun prisma migrate deploy
 ```
 
 ## Required production configuration
@@ -54,6 +57,26 @@ Link the Vercel project and enable AI Gateway. Vercel provisions `VERCEL_OIDC_TO
 - `AI_TEXT_MODEL` defaults to `openai/gpt-5.4`
 - `AI_IMAGE_MODEL` defaults to `google/gemini-3.1-flash-image-preview`
 - `WORKFLOW_ENABLED=true`
+
+### Generated imagery
+
+Create a Vercel Blob store linked to the project:
+
+- `BLOB_READ_WRITE_TOKEN`
+
+Generated hero and menu images are uploaded to public Blob URLs so they remain
+available across browsers and deployments.
+
+### Preview abuse protection
+
+Create an Upstash Redis database and link it to the project:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+Public imports are limited to five preview generations per IP address per hour.
+Production fails closed when Redis is not configured, preventing an unbounded AI
+generation endpoint.
 
 ### Billing
 
@@ -91,6 +114,9 @@ The application first attaches the hostname to the project. It then shows Vercel
 - Stripe webhooks verify the raw body signature.
 - Dashboard sessions are HMAC-signed, HTTP-only, same-site cookies.
 - Restaurant mutations require a session matching the restaurant slug.
+- Image generation and domain management require that same restaurant-scoped session.
+- Public preview generation is rate limited and fails closed in production.
+- Generated imagery is persisted to Vercel Blob instead of browser-local object URLs.
 - Arbitrary restaurant images load directly in the browser instead of through the Next.js image proxy.
 
 ## Useful routes

@@ -53,37 +53,57 @@ async function attachToVercel(hostname: string) {
 export async function POST(request: Request) {
   try {
     const session = await getCurrentSession();
+    if (!session) {
+      return Response.json({ error: "Sign in to connect a domain" }, { status: 401 });
+    }
     const body = (await request.json()) as {
       hostname?: string;
       restaurantSlug?: string;
     };
     const hostname = hostnameSchema.parse(body.hostname);
-    const restaurantSlug = body.restaurantSlug ?? session?.restaurantSlug;
-    if (!restaurantSlug) {
-      return Response.json({ error: "Sign in to connect a domain" }, { status: 401 });
-    }
-    if (session && session.restaurantSlug !== restaurantSlug) {
+    const restaurantSlug = body.restaurantSlug ?? session.restaurantSlug;
+    if (session.restaurantSlug !== restaurantSlug) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const db = process.env.DATABASE_URL ? getDb() : null;
+    let restaurantId: string | null = null;
+    if (db) {
+      const restaurant = await db.restaurant.findUnique({
+        where: { slug: restaurantSlug },
+        select: { id: true },
+      });
+      if (!restaurant) {
+        return Response.json({ error: "Restaurant not found" }, { status: 404 });
+      }
+      const existingDomain = await db.domain.findUnique({
+        where: { hostname },
+        select: { restaurantId: true },
+      });
+      if (
+        existingDomain &&
+        existingDomain.restaurantId !== restaurant.id
+      ) {
+        return Response.json(
+          { error: "This domain is already connected to another restaurant" },
+          { status: 409 },
+        );
+      }
+      restaurantId = restaurant.id;
     }
 
     const vercel = await attachToVercel(hostname);
     const verificationToken = randomBytes(24).toString("base64url");
-    if (process.env.DATABASE_URL) {
-      const restaurant = await getDb().restaurant.findUnique({
-        where: { slug: restaurantSlug },
-        select: { id: true },
+    if (db && restaurantId) {
+      await db.domain.upsert({
+        where: { hostname },
+        update: { restaurantId },
+        create: {
+          hostname,
+          restaurantId,
+          verificationToken,
+        },
       });
-      if (restaurant) {
-        await getDb().domain.upsert({
-          where: { hostname },
-          update: { restaurantId: restaurant.id },
-          create: {
-            hostname,
-            restaurantId: restaurant.id,
-            verificationToken,
-          },
-        });
-      }
     }
 
     const isApex = hostname.split(".").length === 2;
@@ -120,9 +140,32 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const hostname = hostnameSchema.parse(
-      new URL(request.url).searchParams.get("hostname"),
-    );
+    const session = await getCurrentSession();
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const searchParams = new URL(request.url).searchParams;
+    const hostname = hostnameSchema.parse(searchParams.get("hostname"));
+    const restaurantSlug = searchParams.get("restaurantSlug");
+    if (restaurantSlug !== session.restaurantSlug) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    let restaurantId: string | null = null;
+    if (process.env.DATABASE_URL) {
+      const domain = await getDb().domain.findFirst({
+        where: {
+          hostname,
+          restaurant: { slug: session.restaurantSlug },
+        },
+        select: { restaurantId: true },
+      });
+      if (!domain) {
+        return Response.json({ error: "Domain not found" }, { status: 404 });
+      }
+      restaurantId = domain.restaurantId;
+    }
+
     const [aResult, cnameResult] = await Promise.allSettled([
       resolve4(hostname),
       resolveCname(hostname),
@@ -135,7 +178,10 @@ export async function GET(request: Request) {
 
     if (verified && process.env.DATABASE_URL) {
       await getDb().domain.updateMany({
-        where: { hostname },
+        where: {
+          hostname,
+          ...(restaurantId ? { restaurantId } : {}),
+        },
         data: { verified: true, verifiedAt: new Date() },
       });
     }

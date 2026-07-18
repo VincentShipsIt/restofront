@@ -1,8 +1,12 @@
 import { getWritable } from "workflow";
 import { getDb } from "@/lib/db";
-import { generateRestaurantDraft } from "@/lib/ai/restaurant-generation";
+import {
+  generateFoodImage,
+  generateRestaurantDraft,
+} from "@/lib/ai/restaurant-generation";
 import { inspectSource, type ExtractedRestaurant } from "@/lib/importer";
 import type { RestaurantDraft } from "@/lib/restaurant";
+import { storeRestaurantImage } from "@/lib/storage/images";
 
 export type RestaurantImportEvent =
   | {
@@ -40,6 +44,10 @@ export async function restaurantImportWorkflow(
     message: "Composing the mobile-first preview",
   });
   const draft = await composeDraft(extracted);
+  const illustratedDraft = await illustrateDraft(
+    draft,
+    Boolean(extracted.heroImageUrl),
+  );
   await emit({
     type: "progress",
     stage: "compose",
@@ -52,10 +60,10 @@ export async function restaurantImportWorkflow(
     progress: 95,
     message: "Saving the private preview",
   });
-  await persistDraft(draft);
-  await emitComplete(draft);
-  console.log(`[restaurant-import] DONE slug=${draft.slug}`);
-  return draft;
+  await persistDraft(illustratedDraft);
+  await emitComplete(illustratedDraft);
+  console.log(`[restaurant-import] DONE slug=${illustratedDraft.slug}`);
+  return illustratedDraft;
 }
 
 async function emit(event: RestaurantImportEvent): Promise<void> {
@@ -187,6 +195,43 @@ async function persistDraft(draft: RestaurantDraft): Promise<void> {
     },
   });
   console.log(`[restaurant-import:persist] DONE slug=${draft.slug}`);
+}
+
+async function illustrateDraft(
+  draft: RestaurantDraft,
+  sourceHadHero: boolean,
+): Promise<RestaurantDraft> {
+  "use step";
+  console.log(`[restaurant-import:illustrate] START slug=${draft.slug}`);
+  if (
+    sourceHadHero ||
+    !process.env.BLOB_READ_WRITE_TOKEN ||
+    (!process.env.VERCEL_OIDC_TOKEN && !process.env.AI_GATEWAY_API_KEY)
+  ) {
+    console.log(`[restaurant-import:illustrate] SKIP slug=${draft.slug}`);
+    return draft;
+  }
+
+  try {
+    const image = await generateFoodImage(
+      `${draft.cuisine} signature dish for ${draft.name}, consistent with this description: ${draft.description}`,
+    );
+    const heroImageUrl = await storeRestaurantImage({
+      restaurantSlug: draft.slug,
+      data: image.data,
+      mediaType: image.mediaType,
+      purpose: "hero",
+    });
+    console.log(`[restaurant-import:illustrate] DONE slug=${draft.slug}`);
+    return { ...draft, heroImageUrl };
+  } catch (error) {
+    console.warn(
+      `[restaurant-import:illustrate] FALLBACK slug=${draft.slug} error=${
+        error instanceof Error ? error.message : "unknown"
+      }`,
+    );
+    return draft;
+  }
 }
 
 async function emitComplete(draft: RestaurantDraft): Promise<void> {

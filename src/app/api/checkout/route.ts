@@ -30,9 +30,9 @@ export async function POST(request: Request) {
       allow_promotion_codes: true,
       customer_email: email,
       client_reference_id: restaurantSlug,
-      metadata: { restaurantSlug, plan },
+      metadata: { restaurantSlug, plan, priceId },
       subscription_data: {
-        metadata: { restaurantSlug, plan },
+        metadata: { restaurantSlug, plan, priceId },
       },
       success_url: `${appUrl}/api/auth/checkout?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/claim/${restaurantSlug}?checkout=canceled`,

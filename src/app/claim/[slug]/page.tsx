@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { ClaimPanel } from "@/app/claim/[slug]/claim-panel";
 import { Button } from "@/components/ui/button";
-import { sampleRestaurant } from "@/lib/restaurant";
+import { getRestaurantDraft } from "@/lib/restaurants";
 
 export const metadata: Metadata = {
   title: "Claim this restaurant",
@@ -17,6 +17,7 @@ export default async function ClaimPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const draft = await getRestaurantDraft(slug);
 
   return (
     <main className="min-h-screen">
@@ -28,7 +29,7 @@ export default async function ClaimPage({
         </Button>
         <Brand />
       </header>
-      <ClaimPanel slug={slug} fallbackDraft={sampleRestaurant} />
+      <ClaimPanel slug={slug} fallbackDraft={draft} />
     </main>
   );
 }

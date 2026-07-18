@@ -9,7 +9,8 @@ export async function GET(request: Request) {
   const sessionId = url.searchParams.get("session_id");
   if (!sessionId) return Response.json({ error: "Missing session" }, { status: 400 });
 
-  const checkout = await getStripe().checkout.sessions.retrieve(sessionId);
+  const stripe = getStripe();
+  const checkout = await stripe.checkout.sessions.retrieve(sessionId);
   if (checkout.status !== "complete") {
     return Response.json({ error: "Checkout is not complete" }, { status: 400 });
   }
@@ -21,6 +22,15 @@ export async function GET(request: Request) {
       { error: "Checkout is missing account details" },
       { status: 400 },
     );
+  }
+
+  let stripePriceId = checkout.metadata?.priceId ?? null;
+  if (!stripePriceId) {
+    const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, {
+      limit: 1,
+    });
+    const price = lineItems.data[0]?.price;
+    stripePriceId = typeof price === "string" ? price : (price?.id ?? null);
   }
 
   if (process.env.DATABASE_URL) {
@@ -60,7 +70,7 @@ export async function GET(request: Request) {
               typeof checkout.subscription === "string"
                 ? checkout.subscription
                 : null,
-            stripePriceId: checkout.metadata?.plan ?? null,
+            stripePriceId,
             status: "ACTIVE",
           },
           create: {
@@ -69,7 +79,7 @@ export async function GET(request: Request) {
               typeof checkout.subscription === "string"
                 ? checkout.subscription
                 : null,
-            stripePriceId: checkout.metadata?.plan ?? null,
+            stripePriceId,
             status: "ACTIVE",
             organizationId,
           },

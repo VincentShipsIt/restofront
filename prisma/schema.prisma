@@ -70,29 +70,29 @@ model Membership {
 }
 
 model Restaurant {
-  id              String           @id @default(cuid())
-  slug            String           @unique
-  name            String
-  description     String?
-  cuisine         String?
-  address         String?
-  phone           String?
-  email           String?
-  sourceUrl       String?
-  logoUrl         String?
-  heroImageUrl    String?
-  status          RestaurantStatus @default(PROSPECT)
-  organizationId  String?
-  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  menuSections    MenuSection[]
-  integrations    Integration[]
-  importJobs      ImportJob[]
-  domains         Domain[]
-  siteVersions    SiteVersion[]
+  id               String            @id @default(cuid())
+  slug             String            @unique
+  name             String
+  description      String?
+  cuisine          String?
+  address          String?
+  phone            String?
+  email            String?
+  sourceUrl        String?
+  logoUrl          String?
+  heroImageUrl     String?
+  status           RestaurantStatus  @default(PROSPECT)
+  organizationId   String?
+  organization     Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  menuSections     MenuSection[]
+  integrations     Integration[]
+  importJobs       ImportJob[]
+  domains          Domain[]
+  siteVersions     SiteVersion[]
   claimInvitations ClaimInvitation[]
-  auditEvents     AuditEvent[]
+  auditEvents      AuditEvent[]
 }
 
 model MenuSection {
@@ -133,17 +133,17 @@ model Integration {
 }
 
 model ImportJob {
-  id           String       @id @default(cuid())
-  status       ImportStatus @default(QUEUED)
-  source       String
+  id            String       @id @default(cuid())
+  status        ImportStatus @default(QUEUED)
+  source        String
   workflowRunId String?
-  error        String?
-  startedAt    DateTime?
-  completedAt  DateTime?
-  restaurantId String?
-  restaurant   Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  error         String?
+  startedAt     DateTime?
+  completedAt   DateTime?
+  restaurantId  String?
+  restaurant    Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
 model SiteVersion {
@@ -160,15 +160,15 @@ model SiteVersion {
 }
 
 model Domain {
-  id           String     @id @default(cuid())
-  hostname     String     @unique
-  verified     Boolean    @default(false)
-  verificationToken String @unique
-  verifiedAt   DateTime?
-  restaurantId String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                String     @id @default(cuid())
+  hostname          String     @unique
+  verified          Boolean    @default(false)
+  verificationToken String     @unique
+  verifiedAt        DateTime?
+  restaurantId      String
+  restaurant        Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 }
 
 model ClaimInvitation {

@@ -29,18 +29,36 @@ export type ExtractedRestaurant = {
 const privateIpv4Patterns = [
   /^0\./,
   /^10\./,
+  /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./,
   /^127\./,
   /^169\.254\./,
   /^172\.(1[6-9]|2\d|3[01])\./,
+  /^192\.0\.0\./,
+  /^192\.0\.2\./,
   /^192\.168\./,
-  /^224\./,
+  /^198\.(1[89])\./,
+  /^198\.51\.100\./,
+  /^203\.0\.113\./,
+  /^2(2[4-9]|3\d)\./,
+  /^2[4-5]\d\./,
 ];
 
 function isPrivateAddress(address: string): boolean {
-  if (address === "::1" || address.startsWith("fc") || address.startsWith("fd")) {
+  const normalized = address.toLowerCase();
+  if (
+    normalized === "::" ||
+    normalized === "::1" ||
+    normalized.startsWith("::") ||
+    normalized.startsWith("::ffff:") ||
+    normalized.startsWith("64:ff9b:") ||
+    normalized.startsWith("2001:db8:") ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("ff")
+  ) {
     return true;
   }
-  if (address.startsWith("fe80:")) return true;
+  if (normalized.startsWith("fe80:")) return true;
   return privateIpv4Patterns.some((pattern) => pattern.test(address));
 }
 

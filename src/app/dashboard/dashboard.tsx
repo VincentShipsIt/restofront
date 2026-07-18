@@ -115,16 +115,19 @@ export function Dashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: `${draft.cuisine} signature dish for ${draft.name}, visually consistent with a warm independent neighbourhood restaurant`,
+          restaurantSlug: draft.slug,
         }),
       });
-      if (!response.ok) {
-        const result = (await response.json()) as { error?: string };
+      const result = (await response.json()) as {
+        url?: string;
+        error?: string;
+      };
+      if (!response.ok || !result.url) {
         throw new Error(result.error ?? "Image could not be generated");
       }
-      const blob = await response.blob();
       setDraft((current) => ({
         ...current,
-        heroImageUrl: URL.createObjectURL(blob),
+        heroImageUrl: result.url ?? current.heroImageUrl,
       }));
     } catch (caught) {
       alert(
@@ -340,7 +343,7 @@ export function Dashboard({
                     <CardContent className="divide-y">
                       {section.items.map((item, itemIndex) => (
                         <div
-                          key={`${section.name}-${item.name}`}
+                          key={`${sectionIndex}-${itemIndex}`}
                           className="grid gap-4 py-5 md:grid-cols-[1fr_1.5fr_110px_auto]"
                         >
                           <Input
@@ -568,7 +571,7 @@ export function Dashboard({
                           className="w-full"
                           onClick={async () => {
                             const response = await fetch(
-                              `/api/domains?hostname=${encodeURIComponent(domainSetup.hostname)}`,
+                              `/api/domains?hostname=${encodeURIComponent(domainSetup.hostname)}&restaurantSlug=${encodeURIComponent(draft.slug)}`,
                             );
                             const result = (await response.json()) as {
                               verified?: boolean;
