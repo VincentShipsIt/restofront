@@ -4,6 +4,8 @@ import { z } from "zod";
 
 const MAX_HTML_BYTES = 1_500_000;
 const MAX_REDIRECTS = 3;
+const MAX_DISCOVERY_PAGES = 6;
+const MAX_SOURCE_TEXT_CHARS = 60_000;
 
 const sourceSchema = z.string().trim().min(2).max(500);
 
@@ -222,6 +224,9 @@ function detectProvider(url: string): string | null {
     [/deliveroo/i, "Deliveroo"],
     [/wolt/i, "Wolt"],
     [/just-eat|justeat/i, "Just Eat"],
+    [/zenchef/i, "Zenchef"],
+    [/instagram/i, "Instagram"],
+    [/facebook/i, "Facebook"],
   ];
   return providers.find(([pattern]) => pattern.test(url))?.[1] ?? null;
 }
@@ -249,11 +254,27 @@ function extractLinks(html: string, baseUrl: URL): ExtractedLink[] {
 
   while ((match = anchorPattern.exec(html)) !== null && links.length < 30) {
     try {
-      const url = new URL(match[1], baseUrl).toString();
+      const parsedUrl = new URL(decodeHtml(match[1]), baseUrl);
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) continue;
+      const url = parsedUrl.toString();
       const label = decodeHtml(match[2].replace(/<[^>]+>/g, " ")).slice(0, 80);
       const type = classifyLink(label, url);
       if (!type) continue;
+      if (
+        type === "social" &&
+        /(?:sharer|share\.php|intent\/tweet)/i.test(url)
+      ) {
+        continue;
+      }
+      const provider = detectProvider(url);
       if (links.some((link) => link.url === url)) continue;
+      if (
+        type === "social" &&
+        provider &&
+        links.some((link) => link.provider === provider)
+      ) {
+        continue;
+      }
       links.push({
         type,
         label:
@@ -263,7 +284,7 @@ function extractLinks(html: string, baseUrl: URL): ExtractedLink[] {
             : type === "social"
               ? "Follow us"
               : "Order online"),
-        provider: detectProvider(url),
+        provider,
         url,
       });
     } catch {
@@ -272,6 +293,37 @@ function extractLinks(html: string, baseUrl: URL): ExtractedLink[] {
   }
 
   return links;
+}
+
+function extractInternalContentUrls(html: string, baseUrl: URL): URL[] {
+  const urls: URL[] = [];
+  const anchorPattern = /<a\b[^>]*href=["']([^"'#]+)["'][^>]*>/gi;
+  const relevantPath =
+    /(?:menu|menus|carte|restaurant|cuisine|food|drink|boisson|groupe|semaine|week|lunch|dinner|speise|carta)/i;
+  let match: RegExpExecArray | null;
+
+  while (
+    (match = anchorPattern.exec(html)) !== null &&
+    urls.length < MAX_DISCOVERY_PAGES
+  ) {
+    try {
+      const url = new URL(decodeHtml(match[1]), baseUrl);
+      if (!["http:", "https:"].includes(url.protocol)) continue;
+      url.hash = "";
+      if (url.origin !== baseUrl.origin || !relevantPath.test(url.pathname)) {
+        continue;
+      }
+      if (url.pathname === baseUrl.pathname) continue;
+      if (urls.some((candidate) => candidate.toString() === url.toString())) {
+        continue;
+      }
+      urls.push(url);
+    } catch {
+      // Ignore malformed internal links.
+    }
+  }
+
+  return urls;
 }
 
 function extractContact(pageText: string): { address: string; phone: string } {
@@ -302,9 +354,44 @@ export async function inspectSource(rawSource: string): Promise<ExtractedRestaur
 
   const normalized = /^https?:\/\//i.test(source) ? source : `https://${source}`;
   const { html, finalUrl } = await fetchHtml(new URL(normalized));
-  const pageText = stripMarkup(html);
+  const contentPages = await Promise.allSettled(
+    extractInternalContentUrls(html, finalUrl).map(async (url) => {
+      const result = await fetchHtml(url);
+      if (result.finalUrl.origin !== finalUrl.origin) return null;
+      return {
+        html: result.html,
+        url: result.finalUrl,
+        text: stripMarkup(result.html),
+      };
+    }),
+  );
+  const discoveredPages = contentPages.flatMap((result) =>
+    result.status === "fulfilled" && result.value ? [result.value] : [],
+  );
+  const pageText = [
+    `Homepage: ${stripMarkup(html)}`,
+    ...discoveredPages.map(
+      (page) => `Page ${page.url.pathname}: ${page.text}`,
+    ),
+  ]
+    .join("\n\n")
+    .slice(0, MAX_SOURCE_TEXT_CHARS);
   const contact = extractContact(pageText);
   const hero = metaContent(html, "og:image");
+  const links = [html, ...discoveredPages.map((page) => page.html)]
+    .flatMap((pageHtml) => extractLinks(pageHtml, finalUrl))
+    .filter(
+      (link, index, allLinks) =>
+        allLinks.findIndex((candidate) => candidate.url === link.url) ===
+          index &&
+        (link.type !== "social" ||
+          !link.provider ||
+          allLinks.findIndex(
+            (candidate) =>
+              candidate.type === "social" &&
+              candidate.provider === link.provider,
+          ) === index),
+    );
 
   return {
     source,
@@ -317,6 +404,6 @@ export async function inspectSource(rawSource: string): Promise<ExtractedRestaur
     phone: contact.phone,
     heroImageUrl: hero ? new URL(hero, finalUrl).toString() : null,
     pageText,
-    links: extractLinks(html, finalUrl),
+    links,
   };
 }

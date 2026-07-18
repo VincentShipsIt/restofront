@@ -1,3 +1,4 @@
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, Output } from "ai";
 import {
   restaurantDraftSchema,
@@ -7,10 +8,44 @@ import {
 } from "@/lib/restaurant";
 import type { ExtractedRestaurant } from "@/lib/importer";
 
-function aiIsConfigured(): boolean {
+function textAiIsConfigured(): boolean {
+  return Boolean(
+    process.env.OPENROUTER_API_KEY ||
+      process.env.VERCEL_OIDC_TOKEN ||
+      process.env.AI_GATEWAY_API_KEY,
+  );
+}
+
+function imageAiIsConfigured(): boolean {
   return Boolean(
     process.env.VERCEL_OIDC_TOKEN || process.env.AI_GATEWAY_API_KEY,
   );
+}
+
+function getTextModel() {
+  if (process.env.OPENROUTER_API_KEY) {
+    const openrouter = createOpenRouter({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      compatibility: "strict",
+      headers: {
+        "HTTP-Referer":
+          process.env.NEXT_PUBLIC_APP_URL ?? "https://restofront.vercel.app",
+        "X-Title": "Restofront",
+      },
+    });
+    return openrouter.chat(
+      process.env.OPENROUTER_TEXT_MODEL ?? "openrouter/auto",
+      {
+        extraBody: {
+          provider: { require_parameters: true },
+          plugins: [{ id: "response-healing" }],
+        },
+        usage: { include: true },
+      },
+    );
+  }
+
+  return process.env.AI_TEXT_MODEL ?? "openai/gpt-5.4";
 }
 
 function deterministicDraft(source: ExtractedRestaurant): RestaurantDraft {
@@ -32,10 +67,10 @@ function deterministicDraft(source: ExtractedRestaurant): RestaurantDraft {
 export async function generateRestaurantDraft(
   source: ExtractedRestaurant,
 ): Promise<RestaurantDraft> {
-  if (!aiIsConfigured()) return deterministicDraft(source);
+  if (!textAiIsConfigured()) return deterministicDraft(source);
 
   const { output } = await generateText({
-    model: process.env.AI_TEXT_MODEL ?? "openai/gpt-5.4",
+    model: getTextModel(),
     output: Output.object({
       schema: restaurantDraftSchema,
       name: "restaurant_website_draft",
@@ -50,7 +85,7 @@ Rules:
 - Never invent booking, ordering, delivery, address, phone, opening-hour, allergen, or price facts.
 - Existing booking and ordering systems must remain external links; do not rename their providers.
 - Preserve every menu item and price that can be recovered.
-- If menu data is incomplete, create a short clearly plausible preview menu, but do not claim it came from the source.
+- Never invent menu items. If menu data is incomplete, return an empty menu section with a factual explanation.
 - Use concise, warm hospitality copy without AI clichés.
 - Return three accessible hex colours in palette.
 - sourceUrl must be ${source.sourceUrl ?? "null"}.
@@ -65,8 +100,8 @@ ${JSON.stringify({
   links: source.links,
 })}
 
-Website text:
-${source.pageText.slice(0, 28_000)}`,
+Website text collected from the homepage and relevant same-origin pages:
+${source.pageText.slice(0, 60_000)}`,
   });
 
   const draft = restaurantDraftSchema.parse({
@@ -85,7 +120,7 @@ export async function generateFoodImage(prompt: string): Promise<{
   data: Uint8Array;
   mediaType: string;
 }> {
-  if (!aiIsConfigured()) {
+  if (!imageAiIsConfigured()) {
     throw new Error("AI Gateway is not configured");
   }
 
