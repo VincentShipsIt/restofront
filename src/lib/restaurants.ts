@@ -1,0 +1,64 @@
+import { getDb } from "@/lib/db";
+import {
+  restaurantDraftSchema,
+  sampleRestaurant,
+  type RestaurantDraft,
+} from "@/lib/restaurant";
+
+export async function getRestaurantDraft(
+  slug: string,
+): Promise<RestaurantDraft> {
+  if (!process.env.DATABASE_URL) {
+    return { ...sampleRestaurant, slug };
+  }
+
+  const restaurant = await getDb().restaurant.findUnique({
+    where: { slug },
+    include: {
+      integrations: { orderBy: { createdAt: "asc" } },
+      menuSections: {
+        orderBy: { position: "asc" },
+        include: { items: { orderBy: { position: "asc" } } },
+      },
+      siteVersions: { orderBy: { version: "desc" }, take: 1 },
+    },
+  });
+
+  if (!restaurant) return { ...sampleRestaurant, slug };
+  const latestTheme = restaurant.siteVersions[0]?.theme as
+    | RestaurantDraft["palette"]
+    | undefined;
+
+  return restaurantDraftSchema.parse({
+    slug: restaurant.slug,
+    name: restaurant.name,
+    eyebrow: `${restaurant.cuisine ?? "Independent restaurant"} · ${
+      restaurant.address ?? "Local"
+    }`,
+    description: restaurant.description ?? sampleRestaurant.description,
+    cuisine: restaurant.cuisine ?? "",
+    address: restaurant.address ?? "",
+    phone: restaurant.phone ?? "",
+    sourceUrl: restaurant.sourceUrl,
+    heroImageUrl: restaurant.heroImageUrl,
+    palette: latestTheme ?? sampleRestaurant.palette,
+    menuSections: restaurant.menuSections.map((section) => ({
+      name: section.name,
+      description: section.description ?? "",
+      items: section.items.map((item) => ({
+        name: item.name,
+        description: item.description ?? "",
+        price: item.price === null ? null : Number(item.price),
+        currency: item.currency,
+        dietaryLabels: item.dietaryLabels,
+        imageUrl: item.imageUrl,
+      })),
+    })),
+    integrations: restaurant.integrations.map((integration) => ({
+      type: integration.type.toLowerCase(),
+      label: integration.label,
+      provider: integration.provider,
+      url: integration.url,
+    })),
+  });
+}

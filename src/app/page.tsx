@@ -1,65 +1,352 @@
 import Image from "next/image";
+import Link from "next/link";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CalendarCheck2,
+  Check,
+  Globe2,
+  Images,
+  MenuSquare,
+  MousePointerClick,
+  RefreshCcw,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
+import { ImportForm } from "@/components/import-form";
+import { RestaurantSite } from "@/components/restaurant-site";
+import { SiteHeader } from "@/components/site-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { sampleRestaurant } from "@/lib/restaurant";
+
+const steps = [
+  {
+    number: "01",
+    title: "Drop the old website",
+    copy: "Paste a URL or restaurant name. Restofront recovers the menu, contact details, imagery and current integrations.",
+  },
+  {
+    number: "02",
+    title: "Review the finished preview",
+    copy: "A private mobile-first site arrives ready to inspect—not another empty template asking for setup work.",
+  },
+  {
+    number: "03",
+    title: "Claim it and go live",
+    copy: "Choose a plan, connect the domain, and keep every booking and ordering system already in place.",
+  },
+];
+
+const features = [
+  {
+    icon: MenuSquare,
+    title: "A menu people can actually use",
+    copy: "Structured, searchable and designed for thumbs—not a tiny PDF trapped behind three taps.",
+  },
+  {
+    icon: Images,
+    title: "Food imagery that fits",
+    copy: "Recover the best existing photography and generate missing editorial images without inventing dishes.",
+  },
+  {
+    icon: CalendarCheck2,
+    title: "Bookings stay untouched",
+    copy: "OpenTable, SevenRooms, Resy, TheFork and custom booking links remain the source of truth.",
+  },
+  {
+    icon: RefreshCcw,
+    title: "Always-current presence",
+    copy: "Menu, hours and integration checks become an ongoing service, not another redesign project.",
+  },
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <>
+      <SiteHeader />
+      <main>
+        <section className="paper-grid overflow-hidden border-b">
+          <div className="mx-auto grid max-w-7xl gap-12 px-5 pb-20 pt-16 lg:grid-cols-[0.88fr_1.12fr] lg:px-8 lg:pb-28 lg:pt-24">
+            <div className="relative z-10 self-center">
+              <Badge
+                variant="secondary"
+                className="mb-6 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-primary"
+              >
+                <Sparkles className="size-3" />
+                Website, menu and imagery—already done
+              </Badge>
+              <h1 className="font-display text-balance max-w-2xl text-[clamp(4.2rem,8vw,7.6rem)] leading-[0.83] tracking-[-0.055em]">
+                Your front door, always current.
+              </h1>
+              <p className="mt-7 max-w-xl text-balance text-lg leading-8 text-muted-foreground">
+                Give us the restaurant. Get back a polished mobile-first
+                website with the menu already inside—and keep the booking and
+                ordering tools that already work.
+              </p>
+              <ImportForm className="mt-9" />
+              <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Check className="size-3.5 text-primary" /> No setup call
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Check className="size-3.5 text-primary" /> Private preview
+                  first
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Check className="size-3.5 text-primary" /> From €25/month
+                </span>
+              </div>
+            </div>
+
+            <div className="relative min-h-[680px] lg:min-h-[760px]">
+              <div className="absolute inset-x-0 top-6 mx-auto w-[92%] rotate-[2deg] rounded-[2rem] border bg-[#1c241f] p-3 shadow-2xl lg:right-[-9%] lg:w-[92%]">
+                <div className="mb-3 flex items-center gap-2 px-2 text-white/50">
+                  <span className="size-2 rounded-full bg-[#f16f55]" />
+                  <span className="size-2 rounded-full bg-[#f0c45c]" />
+                  <span className="size-2 rounded-full bg-[#75be72]" />
+                  <div className="ml-3 rounded-full bg-white/10 px-4 py-1 text-[10px]">
+                    preview.restofront.com/osteria-luna
+                  </div>
+                </div>
+                <div className="h-[650px] overflow-hidden rounded-[1.35rem] bg-white lg:h-[710px]">
+                  <div className="origin-top scale-[0.72]">
+                    <div className="w-[138.89%]">
+                      <RestaurantSite draft={sampleRestaurant} embedded />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute bottom-5 left-[-2%] z-20 max-w-[245px] -rotate-2 rounded-2xl border bg-card p-4 shadow-xl lg:bottom-10">
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <BadgeCheck className="size-4 text-primary" />
+                  Existing systems preserved
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <span className="rounded-md bg-muted px-2 py-1 text-[10px]">
+                    SevenRooms
+                  </span>
+                  <span className="rounded-md bg-muted px-2 py-1 text-[10px]">
+                    Order online
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="how-it-works"
+          className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32"
+        >
+          <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                Less onboarding. More done.
+              </p>
+              <h2 className="font-display mt-4 max-w-md text-6xl leading-[0.92] tracking-[-0.045em]">
+                Start with the finished thing.
+              </h2>
+            </div>
+            <div className="divide-y border-y">
+              {steps.map((step) => (
+                <div
+                  key={step.number}
+                  className="grid gap-3 py-7 sm:grid-cols-[64px_1fr_1.4fr] sm:items-start"
+                >
+                  <span className="font-mono text-xs text-primary">
+                    {step.number}
+                  </span>
+                  <h3 className="font-medium">{step.title}</h3>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {step.copy}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="features" className="bg-[#1d241f] text-white">
+          <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32">
+            <div className="flex flex-col gap-8 border-b border-white/15 pb-12 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#dc8d6d]">
+                  The digital presence custodian
+                </p>
+                <h2 className="font-display mt-4 max-w-3xl text-6xl leading-[0.9] tracking-[-0.045em] md:text-7xl">
+                  We improve the website. Not your whole operation.
+                </h2>
+              </div>
+              <p className="max-w-sm text-sm leading-6 text-white/58">
+                Restofront sits around the systems a restaurant already trusts,
+                presenting them beautifully without forcing a painful migration.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2">
+              {features.map((feature, index) => (
+                <article
+                  key={feature.title}
+                  className={`min-h-64 border-white/15 p-7 md:p-10 ${
+                    index % 2 === 0 ? "md:border-r" : ""
+                  } ${index < 2 ? "border-b" : ""}`}
+                >
+                  <feature.icon className="size-5 text-[#dc8d6d]" />
+                  <h3 className="mt-12 text-xl font-medium">{feature.title}</h3>
+                  <p className="mt-3 max-w-md text-sm leading-6 text-white/55">
+                    {feature.copy}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="overflow-hidden border-b">
+          <div className="mx-auto grid max-w-7xl lg:grid-cols-2">
+            <div className="relative min-h-[500px]">
+              <Image
+                src="https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1400&q=85"
+                alt="Restaurant dish photographed in natural light"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
+            </div>
+            <div className="flex flex-col justify-center px-6 py-20 md:px-16 lg:py-24">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                Credible imagery, not fantasy food
+              </p>
+              <h2 className="font-display mt-4 text-6xl leading-[0.92] tracking-[-0.045em]">
+                Fill the visual gaps without faking the restaurant.
+              </h2>
+              <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground">
+                Restofront prioritises real source photography, then creates
+                complementary editorial images for missing categories. Every
+                generated asset stays reviewable before publishing.
+              </p>
+              <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border bg-card p-4 text-sm">
+                  <ShieldCheck className="mb-3 size-4 text-primary" />
+                  No invented prices, allergens or booking availability
+                </div>
+                <div className="rounded-xl border bg-card p-4 text-sm">
+                  <MousePointerClick className="mb-3 size-4 text-primary" />
+                  One click to regenerate, replace or remove any image
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="pricing"
+          className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-32"
+        >
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+              Simple ongoing care
+            </p>
+            <h2 className="font-display mt-4 text-6xl leading-[0.92] tracking-[-0.045em]">
+              Less than one empty table.
+            </h2>
+            <p className="mt-5 text-muted-foreground">
+              Preview first. Pay only when the restaurant wants to claim and
+              publish it.
+            </p>
+          </div>
+          <div className="mx-auto mt-12 grid max-w-4xl gap-5 md:grid-cols-2">
+            <div className="rounded-3xl border bg-card p-7">
+              <p className="text-sm font-semibold">Starter</p>
+              <p className="mt-5 font-display text-6xl tracking-[-0.05em]">
+                €25
+                <span className="font-sans text-sm tracking-normal text-muted-foreground">
+                  /month
+                </span>
+              </p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                The always-current essentials for one independent restaurant.
+              </p>
+              <ul className="mt-7 space-y-3 text-sm">
+                {[
+                  "Mobile-first website and menu",
+                  "Existing booking and ordering links",
+                  "Custom domain and SSL",
+                  "Monthly source checks",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <Check className="size-4 text-primary" /> {item}
+                  </li>
+                ))}
+              </ul>
+              <Button asChild variant="outline" className="mt-8 w-full">
+                <Link href="/create">Build a free preview</Link>
+              </Button>
+            </div>
+            <div className="rounded-3xl border border-primary/40 bg-primary p-7 text-primary-foreground shadow-xl">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">Growth</p>
+                <Badge className="bg-white/15 text-white">Most useful</Badge>
+              </div>
+              <p className="mt-5 font-display text-6xl tracking-[-0.05em]">
+                €50
+                <span className="font-sans text-sm tracking-normal text-white/70">
+                  /month
+                </span>
+              </p>
+              <p className="mt-3 text-sm text-white/70">
+                For restaurants that change often and want the work handled.
+              </p>
+              <ul className="mt-7 space-y-3 text-sm">
+                {[
+                  "Everything in Starter",
+                  "Weekly menu and hours monitoring",
+                  "AI-assisted food imagery",
+                  "Priority human review queue",
+                ].map((item) => (
+                  <li key={item} className="flex items-center gap-2">
+                    <Check className="size-4" /> {item}
+                  </li>
+                ))}
+              </ul>
+              <Button
+                asChild
+                variant="secondary"
+                className="mt-8 w-full bg-white text-primary hover:bg-white/90"
+              >
+                <Link href="/create">Build a free preview</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <section className="paper-grid border-t">
+          <div className="mx-auto flex max-w-5xl flex-col items-center px-5 py-24 text-center lg:py-32">
+            <Globe2 className="size-6 text-primary" />
+            <h2 className="font-display text-balance mt-6 text-6xl leading-[0.9] tracking-[-0.05em] md:text-7xl">
+              See the restaurant before asking it to change.
+            </h2>
+            <p className="mt-6 max-w-xl text-muted-foreground">
+              Paste one website. Restofront will do the first draft.
+            </p>
+            <ImportForm compact className="mt-9" />
+          </div>
+        </section>
       </main>
-    </div>
+
+      <footer className="border-t bg-[#1d241f] text-white">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-10 text-sm text-white/55 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+          <span className="font-semibold text-white">Restofront</span>
+          <span>Your restaurant&apos;s front door, always current.</span>
+          <Link
+            href="/create"
+            className="flex items-center gap-1.5 text-white"
+          >
+            Build a preview <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+      </footer>
+    </>
   );
 }

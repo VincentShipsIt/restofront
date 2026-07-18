@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RestaurantStatus {
+  PROSPECT
+  PREVIEW_READY
+  CLAIMED
+  LIVE
+  PAUSED
+}
+
+enum ImportStatus {
+  QUEUED
+  CRAWLING
+  EXTRACTING
+  GENERATING
+  READY
+  FAILED
+}
+
+enum IntegrationType {
+  BOOKING
+  ORDERING
+  DELIVERY
+  SOCIAL
+  ANALYTICS
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  memberships Membership[]
+}
+
+model Organization {
+  id            String         @id @default(cuid())
+  name          String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  memberships   Membership[]
+  restaurants   Restaurant[]
+  subscriptions Subscription[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  role           String       @default("owner")
+  userId         String
+  organizationId String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+model Restaurant {
+  id              String           @id @default(cuid())
+  slug            String           @unique
+  name            String
+  description     String?
+  cuisine         String?
+  address         String?
+  phone           String?
+  email           String?
+  sourceUrl       String?
+  logoUrl         String?
+  heroImageUrl    String?
+  status          RestaurantStatus @default(PROSPECT)
+  organizationId  String?
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  menuSections    MenuSection[]
+  integrations    Integration[]
+  importJobs      ImportJob[]
+  domains         Domain[]
+  siteVersions    SiteVersion[]
+  claimInvitations ClaimInvitation[]
+  auditEvents     AuditEvent[]
+}
+
+model MenuSection {
+  id           String     @id @default(cuid())
+  name         String
+  description  String?
+  position     Int        @default(0)
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items        MenuItem[]
+}
+
+model MenuItem {
+  id            String      @id @default(cuid())
+  name          String
+  description   String?
+  price         Decimal?    @db.Decimal(10, 2)
+  currency      String      @default("EUR")
+  imageUrl      String?
+  dietaryLabels String[]
+  available     Boolean     @default(true)
+  position      Int         @default(0)
+  sectionId     String
+  section       MenuSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+}
+
+model Integration {
+  id           String          @id @default(cuid())
+  type         IntegrationType
+  provider     String?
+  label        String
+  url          String
+  enabled      Boolean         @default(true)
+  restaurantId String
+  restaurant   Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model ImportJob {
+  id           String       @id @default(cuid())
+  status       ImportStatus @default(QUEUED)
+  source       String
+  workflowRunId String?
+  error        String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  restaurantId String?
+  restaurant   Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model SiteVersion {
+  id           String     @id @default(cuid())
+  version      Int
+  theme        Json
+  content      Json
+  publishedAt  DateTime?
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([restaurantId, version])
+}
+
+model Domain {
+  id           String     @id @default(cuid())
+  hostname     String     @unique
+  verified     Boolean    @default(false)
+  verificationToken String @unique
+  verifiedAt   DateTime?
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model ClaimInvitation {
+  id           String     @id @default(cuid())
+  email        String
+  tokenHash    String     @unique
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@index([restaurantId, email])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  stripeCustomerId     String             @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  status               SubscriptionStatus @default(INCOMPLETE)
+  currentPeriodEnd     DateTime?
+  organizationId       String
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+model AuditEvent {
+  id           String     @id @default(cuid())
+  type         String
+  actor        String?
+  metadata     Json?
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@index([restaurantId, createdAt])
+}
