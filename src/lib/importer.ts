@@ -254,7 +254,9 @@ function extractLinks(html: string, baseUrl: URL): ExtractedLink[] {
 
   while ((match = anchorPattern.exec(html)) !== null && links.length < 30) {
     try {
-      const url = new URL(decodeHtml(match[1]), baseUrl).toString();
+      const parsedUrl = new URL(decodeHtml(match[1]), baseUrl);
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) continue;
+      const url = parsedUrl.toString();
       const label = decodeHtml(match[2].replace(/<[^>]+>/g, " ")).slice(0, 80);
       const type = classifyLink(label, url);
       if (!type) continue;
@@ -300,9 +302,13 @@ function extractInternalContentUrls(html: string, baseUrl: URL): URL[] {
     /(?:menu|menus|carte|restaurant|cuisine|food|drink|boisson|groupe|semaine|week|lunch|dinner|speise|carta)/i;
   let match: RegExpExecArray | null;
 
-  while ((match = anchorPattern.exec(html)) !== null) {
+  while (
+    (match = anchorPattern.exec(html)) !== null &&
+    urls.length < MAX_DISCOVERY_PAGES
+  ) {
     try {
       const url = new URL(decodeHtml(match[1]), baseUrl);
+      if (!["http:", "https:"].includes(url.protocol)) continue;
       url.hash = "";
       if (url.origin !== baseUrl.origin || !relevantPath.test(url.pathname)) {
         continue;
@@ -317,7 +323,7 @@ function extractInternalContentUrls(html: string, baseUrl: URL): URL[] {
     }
   }
 
-  return urls.slice(0, MAX_DISCOVERY_PAGES);
+  return urls;
 }
 
 function extractContact(pageText: string): { address: string; phone: string } {
@@ -376,7 +382,15 @@ export async function inspectSource(rawSource: string): Promise<ExtractedRestaur
     .flatMap((pageHtml) => extractLinks(pageHtml, finalUrl))
     .filter(
       (link, index, allLinks) =>
-        allLinks.findIndex((candidate) => candidate.url === link.url) === index,
+        allLinks.findIndex((candidate) => candidate.url === link.url) ===
+          index &&
+        (link.type !== "social" ||
+          !link.provider ||
+          allLinks.findIndex(
+            (candidate) =>
+              candidate.type === "social" &&
+              candidate.provider === link.provider,
+          ) === index),
     );
 
   return {
