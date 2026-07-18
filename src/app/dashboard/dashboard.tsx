@@ -157,10 +157,14 @@ export function Dashboard({
             <span className="size-1.5 rounded-full bg-emerald-500" />
             Preview ready
           </Badge>
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/preview/${draft.slug}`} target="_blank">
-              View site <ExternalLink />
-            </Link>
+          <Button
+            render={
+              <Link href={`/preview/${draft.slug}`} target="_blank" />
+            }
+            variant="outline"
+            size="sm"
+          >
+            View site <ExternalLink />
           </Button>
           <Button
             size="sm"
@@ -254,10 +258,16 @@ export function Dashboard({
                         {draft.description}
                       </p>
                       <div className="mt-6 flex flex-wrap gap-2">
-                        <Button asChild size="sm">
-                          <Link href={`/preview/${draft.slug}`} target="_blank">
-                            Open preview <ArrowUpRight />
-                          </Link>
+                        <Button
+                          render={
+                            <Link
+                              href={`/preview/${draft.slug}`}
+                              target="_blank"
+                            />
+                          }
+                          size="sm"
+                        >
+                          Open preview <ArrowUpRight />
                         </Button>
                         <Button variant="outline" size="sm">
                           Edit homepage
@@ -472,10 +482,14 @@ export function Dashboard({
                         </p>
                       </div>
                       <Switch defaultChecked />
-                      <Button asChild variant="ghost" size="icon-sm">
-                        <Link href={integration.url} target="_blank">
-                          <ExternalLink />
-                        </Link>
+                      <Button
+                        render={
+                          <Link href={integration.url} target="_blank" />
+                        }
+                        variant="ghost"
+                        size="icon-sm"
+                      >
+                        <ExternalLink />
                       </Button>
                     </CardContent>
                   </Card>

@@ -106,10 +106,14 @@ export function ClaimPanel({
                 Claim {draft.name}
               </h1>
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link href={`/preview/${slug}`} target="_blank">
-                Full preview <ExternalLink />
-              </Link>
+            <Button
+              render={
+                <Link href={`/preview/${slug}`} target="_blank" />
+              }
+              variant="outline"
+              size="sm"
+            >
+              Full preview <ExternalLink />
             </Button>
           </div>
           <div className="max-h-[690px] overflow-hidden rounded-[1.75rem] border-[7px] border-[#171914] bg-white p-1 shadow-2xl">

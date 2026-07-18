@@ -152,10 +152,12 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
     <main className="min-h-screen bg-[#ece8de]">
       <header className="flex h-16 items-center justify-between border-b bg-background px-4 md:px-6">
         <div className="flex items-center gap-4">
-          <Button asChild variant="ghost" size="icon-sm">
-            <Link href="/" aria-label="Back to Restofront">
-              <ArrowLeft />
-            </Link>
+          <Button
+            render={<Link href="/" aria-label="Back to Restofront" />}
+            variant="ghost"
+            size="icon-sm"
+          >
+            <ArrowLeft />
           </Button>
           <Brand />
         </div>
@@ -306,11 +308,12 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
                 Review the menu and existing links, then choose a plan to keep
                 this site current.
               </p>
-              <Button asChild className="mt-4 w-full">
-                <Link href={`/claim/${draft.slug}`}>
-                  Claim {draft.name}
-                  <ArrowRight />
-                </Link>
+              <Button
+                render={<Link href={`/claim/${draft.slug}`} />}
+                className="mt-4 w-full"
+              >
+                Claim {draft.name}
+                <ArrowRight />
               </Button>
             </div>
           ) : null}

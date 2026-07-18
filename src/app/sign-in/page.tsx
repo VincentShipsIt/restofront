@@ -14,10 +14,12 @@ export default function SignInPage() {
   return (
     <main className="min-h-screen">
       <header className="flex h-16 items-center gap-4 border-b px-5">
-        <Button asChild variant="ghost" size="icon-sm">
-          <Link href="/">
-            <ArrowLeft />
-          </Link>
+        <Button
+          render={<Link href="/" />}
+          variant="ghost"
+          size="icon-sm"
+        >
+          <ArrowLeft />
         </Button>
         <Brand />
       </header>

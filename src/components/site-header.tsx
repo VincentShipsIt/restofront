@@ -33,14 +33,12 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="hidden items-center gap-2 md:flex">
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/dashboard">Sign in</Link>
+          <Button render={<Link href="/dashboard" />} variant="ghost" size="sm">
+            Sign in
           </Button>
-          <Button asChild size="sm">
-            <Link href="/create">
-              Build a preview
-              <ArrowUpRight className="size-3.5" />
-            </Link>
+          <Button render={<Link href="/create" />} size="sm">
+            Build a preview
+            <ArrowUpRight className="size-3.5" />
           </Button>
         </div>
         <Sheet>
@@ -63,8 +61,8 @@ export function SiteHeader() {
                 </Link>
               ))}
               <Link href="/dashboard">Sign in</Link>
-              <Button asChild className="mt-4">
-                <Link href="/create">Build a preview</Link>
+              <Button render={<Link href="/create" />} className="mt-4">
+                Build a preview
               </Button>
             </nav>
           </SheetContent>

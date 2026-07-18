@@ -280,8 +280,12 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <Button asChild variant="outline" className="mt-8 w-full">
-                <Link href="/create">Build a free preview</Link>
+              <Button
+                render={<Link href="/create" />}
+                variant="outline"
+                className="mt-8 w-full"
+              >
+                Build a free preview
               </Button>
             </div>
             <div className="rounded-3xl border border-primary/40 bg-primary p-7 text-primary-foreground shadow-xl">
@@ -311,11 +315,11 @@ export default function Home() {
                 ))}
               </ul>
               <Button
-                asChild
+                render={<Link href="/create" />}
                 variant="secondary"
                 className="mt-8 w-full bg-white text-primary hover:bg-white/90"
               >
-                <Link href="/create">Build a free preview</Link>
+                Build a free preview
               </Button>
             </div>
           </div>
