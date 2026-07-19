@@ -31,6 +31,11 @@ cuisine-aware layout:
 Each template changes the hero structure, menu layout, weight, spacing, image
 treatment, and copy—not only the colours.
 
+Dish imagery is a saved presentation setting rather than a destructive edit.
+Heritage and fine-dining templates default to a clean text-led menu; casual,
+fresh, coastal, and bold concepts default to a small highlights gallery. Owners
+can show or hide the gallery from the dashboard without deleting any images.
+
 ## Internationalization
 
 Restaurant data uses one canonical source locale plus structured translation

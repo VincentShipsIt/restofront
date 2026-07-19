@@ -447,6 +447,29 @@ export function Dashboard({
                   </Button>
                 }
               />
+              <Card className="mt-8">
+                <CardContent className="flex items-center justify-between gap-6 pt-6">
+                  <div>
+                    <Label htmlFor="show-menu-images" className="text-sm">
+                      Show dish imagery on the website
+                    </Label>
+                    <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
+                      Keep this off for a clean, text-led menu. Existing images
+                      remain saved in the library and can be enabled later.
+                    </p>
+                  </div>
+                  <Switch
+                    id="show-menu-images"
+                    checked={draft.showMenuImages}
+                    onCheckedChange={(checked) =>
+                      setDraft((current) => ({
+                        ...current,
+                        showMenuImages: checked,
+                      }))
+                    }
+                  />
+                </CardContent>
+              </Card>
               <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {[draft.heroImageUrl, ...draft.menuSections.flatMap((section) =>
                   section.items.map((item) => item.imageUrl),
@@ -462,7 +485,7 @@ export function Dashboard({
                           style={{ backgroundImage: `url("${src as string}")` }}
                         />
                         <Badge className="absolute left-3 top-3 bg-black/60 text-white">
-                          {index === 0 ? "Current hero" : "Source image"}
+                          {index === 0 ? "Current hero" : "Menu image"}
                         </Badge>
                       </div>
                     </Card>

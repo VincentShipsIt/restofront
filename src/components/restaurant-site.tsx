@@ -217,7 +217,7 @@ export function RestaurantSite({
         </section>
       )}
 
-      {picturedItems.length > 0 ? (
+      {draft.showMenuImages && picturedItems.length > 0 ? (
         <section className="mx-auto max-w-7xl px-6 py-14 md:px-10 md:py-20">
           <div className="mb-8 flex items-end justify-between gap-6">
             <div>

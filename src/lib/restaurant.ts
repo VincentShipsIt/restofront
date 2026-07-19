@@ -65,6 +65,7 @@ export const restaurantDraftSchema = z.object({
     foreground: z.string(),
     accent: z.string(),
   }),
+  showMenuImages: z.boolean().default(false),
   defaultLocale: localeSchema.default("en"),
   translations: z.array(restaurantTranslationSchema).max(8).default([]),
   menuSections: z.array(menuSectionSchema).min(1).max(12),
@@ -140,6 +141,7 @@ export const sampleRestaurant: RestaurantDraft = {
     foreground: "#1d241f",
     accent: "#a5482d",
   },
+  showMenuImages: true,
   defaultLocale: "en",
   translations: [],
   menuSections: [

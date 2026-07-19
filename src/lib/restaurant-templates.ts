@@ -15,6 +15,7 @@ export type RestaurantTemplate = {
   brandClassName: string;
   titleClassName: string;
   sectionClassName: string;
+  showMenuImagesByDefault: boolean;
   copy: Record<
     "en" | "fr",
     {
@@ -36,6 +37,7 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
     titleClassName:
       "font-extrabold leading-[0.9] tracking-[-0.055em] text-balance",
     sectionClassName: "border-t-2 border-current/15 pt-6",
+    showMenuImagesByDefault: false,
     copy: {
       en: {
         menuEyebrow: "The menu",
@@ -62,6 +64,7 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
       "font-semibold leading-[0.96] tracking-[-0.045em] text-balance",
     sectionClassName:
       "rounded-[1.5rem] border border-current/10 bg-white/45 p-6",
+    showMenuImagesByDefault: true,
     copy: {
       en: {
         menuEyebrow: "Fresh today",
@@ -88,6 +91,7 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
       "font-black uppercase leading-[0.82] tracking-[-0.065em] text-balance",
     sectionClassName:
       "border-2 border-current bg-[var(--restaurant-accent)]/5 p-6 shadow-[6px_6px_0_currentColor]",
+    showMenuImagesByDefault: true,
     copy: {
       en: {
         menuEyebrow: "The lineup",
@@ -113,6 +117,7 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
     titleClassName:
       "font-medium leading-[0.92] tracking-[-0.055em] text-balance",
     sectionClassName: "border-t border-current/20 pt-6",
+    showMenuImagesByDefault: false,
     copy: {
       en: {
         menuEyebrow: "Menu",
@@ -138,6 +143,7 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
     titleClassName:
       "font-semibold leading-[0.94] tracking-[-0.05em] text-balance",
     sectionClassName: "border-t border-current/15 pt-6",
+    showMenuImagesByDefault: true,
     copy: {
       en: {
         menuEyebrow: "From the coast",
@@ -163,6 +169,7 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
     titleClassName:
       "font-bold leading-[0.9] tracking-[-0.055em] text-balance",
     sectionClassName: "border-t border-current/15 pt-6",
+    showMenuImagesByDefault: true,
     copy: {
       en: {
         menuEyebrow: "The menu",
@@ -217,6 +224,10 @@ export function resolveRestaurantTemplate(
 ): RestaurantTemplate {
   const rule = templateRules.find(({ pattern }) => pattern.test(cuisine));
   return templates[rule?.template ?? "warm"];
+}
+
+export function shouldShowMenuImagesByDefault(cuisine: string): boolean {
+  return resolveRestaurantTemplate(cuisine).showMenuImagesByDefault;
 }
 
 export function buildRestaurantPhotographyDirection(

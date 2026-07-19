@@ -16,6 +16,7 @@ const lePetitMeunier: RestaurantDraft = {
     foreground: "#1f2923",
     accent: "#9a4f32",
   },
+  showMenuImages: false,
   defaultLocale: "fr",
   translations: [
     {
