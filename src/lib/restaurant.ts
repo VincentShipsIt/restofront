@@ -71,7 +71,7 @@ export const restaurantDraftSchema = z.object({
   integrations: z.array(integrationSchema).max(12),
 }).superRefine((draft, context) => {
   const translatedLocales = new Set<string>();
-  for (const translation of draft.translations) {
+  draft.translations.forEach((translation, translationIndex) => {
     if (translation.locale === draft.defaultLocale) {
       context.addIssue({
         code: "custom",
@@ -90,10 +90,10 @@ export const restaurantDraftSchema = z.object({
     if (translation.menuSections.length !== draft.menuSections.length) {
       context.addIssue({
         code: "custom",
-        path: ["translations", translation.locale, "menuSections"],
+        path: ["translations", translationIndex, "menuSections"],
         message: "Translated menu sections must match the canonical menu",
       });
-      continue;
+      return;
     }
     translation.menuSections.forEach((section, sectionIndex) => {
       if (section.items.length !== draft.menuSections[sectionIndex].items.length) {
@@ -101,7 +101,7 @@ export const restaurantDraftSchema = z.object({
           code: "custom",
           path: [
             "translations",
-            translation.locale,
+            translationIndex,
             "menuSections",
             sectionIndex,
             "items",
@@ -113,11 +113,11 @@ export const restaurantDraftSchema = z.object({
     if (translation.integrationLabels.length !== draft.integrations.length) {
       context.addIssue({
         code: "custom",
-        path: ["translations", translation.locale, "integrationLabels"],
+        path: ["translations", translationIndex, "integrationLabels"],
         message: "Translated integration labels must match the canonical links",
       });
     }
-  }
+  });
 });
 
 export type RestaurantDraft = z.infer<typeof restaurantDraftSchema>;

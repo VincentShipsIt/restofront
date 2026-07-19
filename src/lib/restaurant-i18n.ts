@@ -32,10 +32,14 @@ export function getRestaurantTemplateCopy(
 }
 
 export function localizeIntegrationUrl(url: string, locale: string): string {
-  const localizedUrl = new URL(url);
-  if (!localizedUrl.searchParams.has("lang")) return url;
-  localizedUrl.searchParams.set("lang", locale.split("-")[0].toLowerCase());
-  return localizedUrl.toString();
+  try {
+    const localizedUrl = new URL(url);
+    if (!localizedUrl.searchParams.has("lang")) return url;
+    localizedUrl.searchParams.set("lang", locale.split("-")[0].toLowerCase());
+    return localizedUrl.toString();
+  } catch {
+    return url;
+  }
 }
 
 function toUiLocale(locale: string): SupportedUiLocale {

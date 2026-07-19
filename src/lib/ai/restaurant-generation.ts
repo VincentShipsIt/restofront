@@ -119,6 +119,16 @@ ${source.pageText.slice(0, 60_000)}`,
     heroImageUrl: source.heroImageUrl || output.heroImageUrl,
     integrations:
       source.links.length > 0 ? source.links : output.integrations,
+    translations: output.translations.map((translation) => ({
+      ...translation,
+      integrationLabels:
+        source.links.length > 0
+          ? source.links.map(
+              (link, index) =>
+                translation.integrationLabels[index] ?? link.label,
+            )
+          : translation.integrationLabels,
+    })),
   });
 
   return draft;
