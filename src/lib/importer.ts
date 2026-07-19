@@ -3,6 +3,7 @@ import { resolve4, resolve6 } from "node:dns/promises";
 import { z } from "zod";
 
 const MAX_HTML_BYTES = 1_500_000;
+const MAX_IMAGE_BYTES = 12_000_000;
 const MAX_REDIRECTS = 3;
 const MAX_DISCOVERY_PAGES = 6;
 const MAX_SOURCE_TEXT_CHARS = 60_000;
@@ -158,6 +159,74 @@ async function fetchHtml(initialUrl: URL): Promise<{
   }
 
   throw new Error("The restaurant website redirected too many times");
+}
+
+export async function fetchPublicImage(rawUrl: string): Promise<{
+  data: Uint8Array;
+  mediaType: string;
+}> {
+  let url = new URL(rawUrl);
+
+  for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+    await assertPublicUrl(url);
+    const response = await fetch(url, {
+      headers: {
+        Accept: "image/avif,image/webp,image/png,image/jpeg",
+        "User-Agent":
+          "Restofront Image Importer/1.0 (+https://restofront.com; authentic restaurant photo enhancement)",
+      },
+      redirect: "manual",
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get("location");
+      if (!location) throw new Error("The image returned an invalid redirect");
+      url = new URL(location, url);
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new Error(`The source image returned HTTP ${response.status}`);
+    }
+
+    const mediaType = (response.headers.get("content-type") ?? "")
+      .split(";")[0]
+      .trim()
+      .toLowerCase();
+    if (
+      !["image/avif", "image/jpeg", "image/png", "image/webp"].includes(
+        mediaType,
+      )
+    ) {
+      throw new Error("The source must be a JPEG, PNG, WebP, or AVIF image");
+    }
+    if (!response.body) throw new Error("The source image was empty");
+
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let byteLength = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      byteLength += value.byteLength;
+      if (byteLength > MAX_IMAGE_BYTES) {
+        await reader.cancel();
+        throw new Error("The source image is too large to import safely");
+      }
+      chunks.push(value);
+    }
+
+    const data = new Uint8Array(byteLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      data.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return { data, mediaType };
+  }
+
+  throw new Error("The source image redirected too many times");
 }
 
 function decodeHtml(value: string): string {

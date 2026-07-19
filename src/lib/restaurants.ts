@@ -43,8 +43,12 @@ export async function getRestaurantDraft(
     phone: restaurant.phone ?? "",
     sourceUrl: restaurant.sourceUrl,
     heroImageUrl: restaurant.heroImageUrl,
+    heroOriginalImageUrl: restaurant.heroOriginalImageUrl,
+    heroImageProvenance:
+      restaurant.heroImageProvenance?.toLowerCase().replace("_", "-") ?? null,
     palette: latestTheme ?? sampleRestaurant.palette,
     showMenuImages: restaurant.showMenuImages,
+    autoEnhanceImages: restaurant.autoEnhanceImages,
     defaultLocale: restaurant.defaultLocale,
     translations: restaurant.translations,
     menuSections: restaurant.menuSections.map((section) => ({
@@ -57,6 +61,9 @@ export async function getRestaurantDraft(
         currency: item.currency,
         dietaryLabels: item.dietaryLabels,
         imageUrl: item.imageUrl,
+        originalImageUrl: item.originalImageUrl,
+        imageProvenance:
+          item.imageProvenance?.toLowerCase().replace("_", "-") ?? null,
       })),
     })),
     integrations: restaurant.integrations.map((integration) => ({

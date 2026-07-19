@@ -11,12 +11,16 @@ const lePetitMeunier: RestaurantDraft = {
   phone: "04 78 45 05 03",
   sourceUrl: "https://www.lepetitmeunier.com/",
   heroImageUrl: "https://www.lepetitmeunier.com/s/img/emotionheader.JPG",
+  heroOriginalImageUrl:
+    "https://www.lepetitmeunier.com/s/img/emotionheader.JPG",
+  heroImageProvenance: "official",
   palette: {
     background: "#f4f0e6",
     foreground: "#1f2923",
     accent: "#9a4f32",
   },
   showMenuImages: false,
+  autoEnhanceImages: true,
   defaultLocale: "fr",
   translations: [
     {
@@ -214,8 +218,7 @@ const lePetitMeunier: RestaurantDraft = {
           price: 16,
           currency: "EUR",
           dietaryLabels: [],
-          imageUrl:
-            "/images/le-petit-meunier/panna-cotta-parmesan.webp",
+          imageUrl: null,
         },
         {
           name: "Roulé d’aubergine et ricotta",
@@ -272,7 +275,7 @@ const lePetitMeunier: RestaurantDraft = {
           price: 22,
           currency: "EUR",
           dietaryLabels: [],
-          imageUrl: "/images/le-petit-meunier/salmon-tataki.webp",
+          imageUrl: null,
         },
         {
           name: "Gambas grillées",
@@ -298,7 +301,7 @@ const lePetitMeunier: RestaurantDraft = {
           price: 27,
           currency: "EUR",
           dietaryLabels: [],
-          imageUrl: "/images/le-petit-meunier/duck-breast.webp",
+          imageUrl: null,
         },
         {
           name: "Faux-filet de Wagyu",
@@ -329,8 +332,7 @@ const lePetitMeunier: RestaurantDraft = {
           price: 9,
           currency: "EUR",
           dietaryLabels: [],
-          imageUrl:
-            "/images/le-petit-meunier/strawberry-pavlova.webp",
+          imageUrl: null,
         },
         {
           name: "Sphère en chocolat noir",

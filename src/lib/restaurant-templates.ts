@@ -1,5 +1,3 @@
-import type { RestaurantDraft } from "@/lib/restaurant";
-
 export type RestaurantTemplateId =
   | "heritage"
   | "fresh"
@@ -25,7 +23,6 @@ export type RestaurantTemplate = {
       featuredSubheading: string;
     }
   >;
-  photographyDirection: string;
 };
 
 const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
@@ -52,8 +49,6 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
         featuredSubheading: "Des plats fidèles à la saison.",
       },
     },
-    photographyDirection:
-      "Warm independent French restaurant photography, dark matte stoneware, rustic stone and wood, close three-quarter camera angle, directional amber side light, shallow depth of field and honest appetizing texture.",
   },
   fresh: {
     id: "fresh",
@@ -79,8 +74,6 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
         featuredSubheading: "Des produits frais, sans artifice.",
       },
     },
-    photographyDirection:
-      "Bright natural restaurant photography, pale stoneware, fresh produce colours, clean daylight, airy framing, soft shadows and realistic portions.",
   },
   bold: {
     id: "bold",
@@ -106,8 +99,6 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
         featuredSubheading: "Les plats parlent d’eux-mêmes.",
       },
     },
-    photographyDirection:
-      "Bold American restaurant photography, generous but realistic portions, direct flash balanced with warm kitchen light, saturated food colour, strong contrast and casual energy.",
   },
   nocturne: {
     id: "nocturne",
@@ -132,8 +123,6 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
         featuredSubheading: "Un même langage, assiette après assiette.",
       },
     },
-    photographyDirection:
-      "Low-key Japanese restaurant photography, precise plating, black ceramic, controlled pools of warm light, deep neutral shadows, restrained colour and meticulous texture.",
   },
   coastal: {
     id: "coastal",
@@ -158,8 +147,6 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
         featuredSubheading: "Des saveurs nettes et franches.",
       },
     },
-    photographyDirection:
-      "Fresh coastal restaurant photography, cool daylight with warm highlights, pale textured ceramics, clean seafood colour, relaxed framing and natural table textures.",
   },
   warm: {
     id: "warm",
@@ -184,8 +171,6 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
         featuredSubheading: "Les plats, tels qu’ils arrivent.",
       },
     },
-    photographyDirection:
-      "Warm neighbourhood restaurant photography, natural table texture, handmade food, late-afternoon window light, gentle contrast and relaxed generous composition.",
   },
 };
 
@@ -228,11 +213,4 @@ export function resolveRestaurantTemplate(
 
 export function shouldShowMenuImagesByDefault(cuisine: string): boolean {
   return resolveRestaurantTemplate(cuisine).showMenuImagesByDefault;
-}
-
-export function buildRestaurantPhotographyDirection(
-  draft: Pick<RestaurantDraft, "cuisine" | "name" | "palette">,
-): string {
-  const template = resolveRestaurantTemplate(draft.cuisine);
-  return `${template.photographyDirection} Keep one consistent campaign for ${draft.name}. Reuse the same camera angle, plate family, tabletop, lighting direction and colour grade across every generated dish. Brand palette: background ${draft.palette.background}, foreground ${draft.palette.foreground}, accent ${draft.palette.accent}.`;
 }
