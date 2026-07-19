@@ -81,6 +81,7 @@ model Restaurant {
   sourceUrl        String?
   logoUrl          String?
   heroImageUrl     String?
+  showMenuImages   Boolean           @default(false)
   defaultLocale    String            @default("en")
   translations     Json              @default("[]")
   status           RestaurantStatus  @default(PROSPECT)

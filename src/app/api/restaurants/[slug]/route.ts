@@ -26,6 +26,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
         address: draft.address,
         phone: draft.phone,
         heroImageUrl: draft.heroImageUrl,
+        showMenuImages: draft.showMenuImages,
         defaultLocale: draft.defaultLocale,
         translations: draft.translations,
         menuSections: {

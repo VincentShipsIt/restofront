@@ -7,6 +7,7 @@ import {
   type RestaurantDraft,
 } from "@/lib/restaurant";
 import type { ExtractedRestaurant } from "@/lib/importer";
+import { shouldShowMenuImagesByDefault } from "@/lib/restaurant-templates";
 
 function textAiIsConfigured(): boolean {
   return Boolean(
@@ -117,6 +118,7 @@ ${source.pageText.slice(0, 60_000)}`,
     slug: slugify(output.name),
     sourceUrl: source.sourceUrl,
     heroImageUrl: source.heroImageUrl || output.heroImageUrl,
+    showMenuImages: shouldShowMenuImagesByDefault(output.cuisine),
     integrations:
       source.links.length > 0 ? source.links : output.integrations,
     translations: output.translations.map((translation) => ({

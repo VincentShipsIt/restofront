@@ -44,6 +44,7 @@ export async function getRestaurantDraft(
     sourceUrl: restaurant.sourceUrl,
     heroImageUrl: restaurant.heroImageUrl,
     palette: latestTheme ?? sampleRestaurant.palette,
+    showMenuImages: restaurant.showMenuImages,
     defaultLocale: restaurant.defaultLocale,
     translations: restaurant.translations,
     menuSections: restaurant.menuSections.map((section) => ({
