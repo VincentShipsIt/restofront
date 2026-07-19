@@ -8,7 +8,7 @@ Restofront turns an existing restaurant website—or just a restaurant name—in
 2. Import public website content with SSRF-safe fetching and bounded HTML reads.
 3. Recover the menu, contact details, imagery, and external integrations.
 4. Derive the colour palette from the source branding and select a cuisine-aware layout.
-5. Generate a structured website draft with AI Gateway when configured, or a deterministic demo draft locally.
+5. Detect the source language, preserve it as canonical, and generate a complete English translation during the same structured AI pass.
 6. Reuse source photography as visual direction and generate up to three missing dish images as one consistent restaurant campaign.
 7. Save a private preview through a durable Vercel Workflow.
 8. Claim the restaurant through Stripe Checkout; the completed checkout creates the prefilled owner account.
@@ -30,6 +30,22 @@ cuisine-aware layout:
 
 Each template changes the hero structure, menu layout, weight, spacing, image
 treatment, and copy—not only the colours.
+
+## Internationalization
+
+Restaurant data uses one canonical source locale plus structured translation
+overlays. Prices, currencies, images, addresses, provider names, and external
+booking or ordering URLs remain shared, so translating a site cannot fork its
+operational data. Menu sections, menu items, descriptions, dietary labels, and
+link labels keep the same order and count in every locale.
+If an existing provider URL already exposes a `lang` parameter, the rendered
+link updates only that preference while preserving the same provider and flow.
+
+Imports read the document language when available. Non-English sources receive
+an English translation in the same schema-validated OpenRouter generation.
+Restaurant templates and interface copy use small server-side dictionaries.
+The canonical site is available at `/preview/[slug]`; translations use
+`/preview/[slug]/[locale]` and expose language alternates in metadata.
 
 ## Stack
 
@@ -160,3 +176,4 @@ The application first attaches the hostname to the project. It then shows Vercel
 - `/dashboard` — authenticated restaurant management
 - `/dashboard?demo=1` — local demo dashboard
 - `/preview/[slug]` — private full-screen restaurant preview
+- `/preview/[slug]/[locale]` — translated restaurant preview

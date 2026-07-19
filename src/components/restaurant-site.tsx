@@ -5,6 +5,12 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import {
+  getRestaurantDictionary,
+  getRestaurantTemplateCopy,
+  localizeIntegrationUrl,
+} from "@/lib/restaurant-i18n";
 import { formatPrice, type RestaurantDraft } from "@/lib/restaurant";
 import { resolveRestaurantTemplate } from "@/lib/restaurant-templates";
 import { cn } from "@/lib/utils";
@@ -12,11 +18,17 @@ import { cn } from "@/lib/utils";
 type RestaurantSiteProps = {
   draft: RestaurantDraft;
   embedded?: boolean;
+  locale?: string;
+  localeBasePath?: string;
+  availableLocales?: string[];
 };
 
 export function RestaurantSite({
   draft,
   embedded = false,
+  locale = draft.defaultLocale,
+  localeBasePath,
+  availableLocales = [draft.defaultLocale],
 }: RestaurantSiteProps) {
   const booking = draft.integrations.find(
     (integration) => integration.type === "booking",
@@ -25,6 +37,8 @@ export function RestaurantSite({
     ["ordering", "delivery"].includes(integration.type),
   );
   const template = resolveRestaurantTemplate(draft.cuisine);
+  const copy = getRestaurantTemplateCopy(template, locale);
+  const dictionary = getRestaurantDictionary(locale);
   const picturedItems = draft.menuSections
     .flatMap((section) => section.items)
     .filter(
@@ -36,6 +50,7 @@ export function RestaurantSite({
 
   return (
     <article
+      lang={locale}
       data-restaurant-template={template.id}
       className={cn(
         "overflow-hidden font-sans",
@@ -63,9 +78,45 @@ export function RestaurantSite({
           {draft.name}
         </span>
         <div className="flex items-center gap-2">
+          {localeBasePath && availableLocales.length > 1 ? (
+            <nav
+              aria-label={dictionary.language}
+              className={cn(
+                "flex items-center rounded-full border p-1 text-[10px] font-bold uppercase tracking-[0.08em] backdrop-blur",
+                immersiveHero
+                  ? "border-white/35 bg-black/10"
+                  : "border-current/20",
+              )}
+            >
+              {availableLocales.map((availableLocale) => (
+                <Link
+                  key={availableLocale}
+                  href={
+                    availableLocale === draft.defaultLocale
+                      ? localeBasePath
+                      : `${localeBasePath}/${availableLocale}`
+                  }
+                  hrefLang={availableLocale}
+                  aria-current={
+                    availableLocale === locale ? "page" : undefined
+                  }
+                  className={cn(
+                    "rounded-full px-2 py-1 transition-colors",
+                    availableLocale === locale
+                      ? immersiveHero
+                        ? "bg-white text-black"
+                        : "bg-[var(--restaurant-fg)] text-[var(--restaurant-bg)]"
+                      : "opacity-65 hover:opacity-100",
+                  )}
+                >
+                  {availableLocale.split("-")[0]}
+                </Link>
+              ))}
+            </nav>
+          ) : null}
           {ordering ? (
             <a
-              href={ordering.url}
+              href={localizeIntegrationUrl(ordering.url, locale)}
               target="_blank"
               rel="noreferrer"
               className={cn(
@@ -81,7 +132,7 @@ export function RestaurantSite({
           ) : null}
           {booking ? (
             <a
-              href={booking.url}
+              href={localizeIntegrationUrl(booking.url, locale)}
               target="_blank"
               rel="noreferrer"
               className={cn(
@@ -126,7 +177,11 @@ export function RestaurantSite({
               </p>
             </div>
           </div>
-          <HeroImage draft={draft} className="min-h-[420px] lg:min-h-full" />
+          <HeroImage
+            draft={draft}
+            locale={locale}
+            className="min-h-[420px] lg:min-h-full"
+          />
         </section>
       ) : template.heroLayout === "card" ? (
         <section className="p-4 pt-1 md:p-8 md:pt-2">
@@ -136,7 +191,11 @@ export function RestaurantSite({
               embedded ? "min-h-[500px]" : "min-h-[76svh]",
             )}
           >
-            <HeroImage draft={draft} className="absolute inset-0" />
+            <HeroImage
+              draft={draft}
+              locale={locale}
+              className="absolute inset-0"
+            />
             <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(10,18,15,0.86),rgba(10,18,15,0.02)_70%)]" />
             <HeroCopy draft={draft} embedded={embedded} template={template} />
           </div>
@@ -148,7 +207,11 @@ export function RestaurantSite({
             embedded ? "min-h-[520px]" : "min-h-[82svh]",
           )}
         >
-          <HeroImage draft={draft} className="absolute inset-0" />
+          <HeroImage
+            draft={draft}
+            locale={locale}
+            className="absolute inset-0"
+          />
           <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(10,12,11,0.88),rgba(10,12,11,0.04)_68%)]" />
           <HeroCopy draft={draft} embedded={embedded} template={template} />
         </section>
@@ -162,10 +225,10 @@ export function RestaurantSite({
                 className="text-xs font-bold uppercase tracking-[0.18em]"
                 style={{ color: "var(--restaurant-accent)" }}
               >
-                {template.featuredHeading}
+                {copy.featuredHeading}
               </p>
               <h2 className="mt-3 text-3xl font-bold tracking-[-0.04em] md:text-5xl">
-                {template.featuredSubheading}
+                {copy.featuredSubheading}
               </h2>
             </div>
           </div>
@@ -202,7 +265,7 @@ export function RestaurantSite({
                   <div className="flex items-start justify-between gap-4">
                     <h3 className="font-semibold leading-tight">{item.name}</h3>
                     <span className="font-mono text-xs">
-                      {formatPrice(item.price, item.currency)}
+                      {formatPrice(item.price, item.currency, locale)}
                     </span>
                   </div>
                   <p className="mt-2 text-sm leading-5 opacity-60">
@@ -218,10 +281,10 @@ export function RestaurantSite({
       <section className="mx-auto grid max-w-7xl gap-12 px-6 py-16 md:px-10 md:py-24 lg:grid-cols-[0.68fr_1.32fr]">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-55">
-            {template.menuEyebrow}
+            {copy.menuEyebrow}
           </p>
           <h2 className="mt-3 max-w-md text-4xl font-bold leading-[0.96] tracking-[-0.045em] md:text-6xl">
-            {template.menuHeading}
+            {copy.menuHeading}
           </h2>
           <div className="mt-8 flex flex-col gap-3 text-sm opacity-75">
             <span className="flex items-start gap-2">
@@ -230,19 +293,20 @@ export function RestaurantSite({
             </span>
             {booking ? (
               <a
-                href={booking.url}
+                href={localizeIntegrationUrl(booking.url, locale)}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 font-semibold opacity-100"
               >
                 <CalendarDays className="size-4" />
-                Reservations via {booking.provider ?? "our booking partner"}
+                {dictionary.reservationsVia}{" "}
+                {booking.provider ?? dictionary.bookingPartner}
                 <ArrowUpRight className="size-3.5" />
               </a>
             ) : null}
             {ordering ? (
               <a
-                href={ordering.url}
+                href={localizeIntegrationUrl(ordering.url, locale)}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 font-semibold opacity-100"
@@ -302,7 +366,7 @@ export function RestaurantSite({
                       </p>
                     </div>
                     <span className="font-mono text-sm">
-                      {formatPrice(item.price, item.currency)}
+                      {formatPrice(item.price, item.currency, locale)}
                     </span>
                   </div>
                 ))}
@@ -316,7 +380,7 @@ export function RestaurantSite({
         <span>
           {draft.name} · {draft.address}
         </span>
-        <span>Menu and availability may change with the season.</span>
+        <span>{dictionary.seasonalNotice}</span>
       </footer>
     </article>
   );
@@ -325,13 +389,19 @@ export function RestaurantSite({
 type HeroImageProps = {
   draft: RestaurantDraft;
   className?: string;
+  locale?: string;
 };
 
-function HeroImage({ draft, className }: HeroImageProps) {
+function HeroImage({
+  draft,
+  className,
+  locale = draft.defaultLocale,
+}: HeroImageProps) {
+  const dictionary = getRestaurantDictionary(locale);
   return draft.heroImageUrl ? (
     <div
       role="img"
-      aria-label={`Dining room at ${draft.name}`}
+      aria-label={`${dictionary.diningRoomAlt} ${draft.name}`}
       className={cn("bg-cover bg-center", className)}
       style={{ backgroundImage: `url("${draft.heroImageUrl}")` }}
     />

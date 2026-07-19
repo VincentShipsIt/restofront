@@ -15,10 +15,15 @@ export type RestaurantTemplate = {
   brandClassName: string;
   titleClassName: string;
   sectionClassName: string;
-  menuEyebrow: string;
-  menuHeading: string;
-  featuredHeading: string;
-  featuredSubheading: string;
+  copy: Record<
+    "en" | "fr",
+    {
+      menuEyebrow: string;
+      menuHeading: string;
+      featuredHeading: string;
+      featuredSubheading: string;
+    }
+  >;
   photographyDirection: string;
 };
 
@@ -31,10 +36,20 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
     titleClassName:
       "font-extrabold leading-[0.9] tracking-[-0.055em] text-balance",
     sectionClassName: "border-t-2 border-current/15 pt-6",
-    menuEyebrow: "La carte",
-    menuHeading: "Une cuisine guidée par la saison.",
-    featuredHeading: "Quelques assiettes",
-    featuredSubheading: "Des plats fidèles à la saison.",
+    copy: {
+      en: {
+        menuEyebrow: "The menu",
+        menuHeading: "Cooking guided by the season.",
+        featuredHeading: "A few dishes",
+        featuredSubheading: "Plates faithful to the season.",
+      },
+      fr: {
+        menuEyebrow: "La carte",
+        menuHeading: "Une cuisine guidée par la saison.",
+        featuredHeading: "Quelques assiettes",
+        featuredSubheading: "Des plats fidèles à la saison.",
+      },
+    },
     photographyDirection:
       "Warm independent French restaurant photography, dark matte stoneware, rustic stone and wood, close three-quarter camera angle, directional amber side light, shallow depth of field and honest appetizing texture.",
   },
@@ -47,10 +62,20 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
       "font-semibold leading-[0.96] tracking-[-0.045em] text-balance",
     sectionClassName:
       "rounded-[1.5rem] border border-current/10 bg-white/45 p-6",
-    menuEyebrow: "Fresh today",
-    menuHeading: "Bright food, clearly served.",
-    featuredHeading: "What we are serving",
-    featuredSubheading: "Fresh food, shown honestly.",
+    copy: {
+      en: {
+        menuEyebrow: "Fresh today",
+        menuHeading: "Bright food, clearly served.",
+        featuredHeading: "What we are serving",
+        featuredSubheading: "Fresh food, shown honestly.",
+      },
+      fr: {
+        menuEyebrow: "Frais aujourd’hui",
+        menuHeading: "Une cuisine fraîche, servie simplement.",
+        featuredHeading: "À table aujourd’hui",
+        featuredSubheading: "Des produits frais, sans artifice.",
+      },
+    },
     photographyDirection:
       "Bright natural restaurant photography, pale stoneware, fresh produce colours, clean daylight, airy framing, soft shadows and realistic portions.",
   },
@@ -63,10 +88,20 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
       "font-black uppercase leading-[0.82] tracking-[-0.065em] text-balance",
     sectionClassName:
       "border-2 border-current bg-[var(--restaurant-accent)]/5 p-6 shadow-[6px_6px_0_currentColor]",
-    menuEyebrow: "The lineup",
-    menuHeading: "Big flavour. No detours.",
-    featuredHeading: "See what is cooking",
-    featuredSubheading: "The food does the talking.",
+    copy: {
+      en: {
+        menuEyebrow: "The lineup",
+        menuHeading: "Big flavour. No detours.",
+        featuredHeading: "See what is cooking",
+        featuredSubheading: "The food does the talking.",
+      },
+      fr: {
+        menuEyebrow: "La sélection",
+        menuHeading: "Du goût. Sans détour.",
+        featuredHeading: "En cuisine",
+        featuredSubheading: "Les plats parlent d’eux-mêmes.",
+      },
+    },
     photographyDirection:
       "Bold American restaurant photography, generous but realistic portions, direct flash balanced with warm kitchen light, saturated food colour, strong contrast and casual energy.",
   },
@@ -78,10 +113,20 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
     titleClassName:
       "font-medium leading-[0.92] tracking-[-0.055em] text-balance",
     sectionClassName: "border-t border-current/20 pt-6",
-    menuEyebrow: "Menu",
-    menuHeading: "Precision, texture and balance.",
-    featuredHeading: "From the kitchen",
-    featuredSubheading: "One visual language, plate by plate.",
+    copy: {
+      en: {
+        menuEyebrow: "Menu",
+        menuHeading: "Precision, texture and balance.",
+        featuredHeading: "From the kitchen",
+        featuredSubheading: "One visual language, plate by plate.",
+      },
+      fr: {
+        menuEyebrow: "Menu",
+        menuHeading: "Précision, texture et équilibre.",
+        featuredHeading: "Depuis la cuisine",
+        featuredSubheading: "Un même langage, assiette après assiette.",
+      },
+    },
     photographyDirection:
       "Low-key Japanese restaurant photography, precise plating, black ceramic, controlled pools of warm light, deep neutral shadows, restrained colour and meticulous texture.",
   },
@@ -93,10 +138,20 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
     titleClassName:
       "font-semibold leading-[0.94] tracking-[-0.05em] text-balance",
     sectionClassName: "border-t border-current/15 pt-6",
-    menuEyebrow: "From the coast",
-    menuHeading: "The catch, simply handled.",
-    featuredHeading: "From sea to table",
-    featuredSubheading: "Clean flavours in clear view.",
+    copy: {
+      en: {
+        menuEyebrow: "From the coast",
+        menuHeading: "The catch, simply handled.",
+        featuredHeading: "From sea to table",
+        featuredSubheading: "Clean flavours in clear view.",
+      },
+      fr: {
+        menuEyebrow: "Depuis la côte",
+        menuHeading: "La pêche, cuisinée simplement.",
+        featuredHeading: "De la mer à la table",
+        featuredSubheading: "Des saveurs nettes et franches.",
+      },
+    },
     photographyDirection:
       "Fresh coastal restaurant photography, cool daylight with warm highlights, pale textured ceramics, clean seafood colour, relaxed framing and natural table textures.",
   },
@@ -108,10 +163,20 @@ const templates: Record<RestaurantTemplateId, RestaurantTemplate> = {
     titleClassName:
       "font-bold leading-[0.9] tracking-[-0.055em] text-balance",
     sectionClassName: "border-t border-current/15 pt-6",
-    menuEyebrow: "The menu",
-    menuHeading: "Made here. Served when ready.",
-    featuredHeading: "A look at the table",
-    featuredSubheading: "The dishes, as they arrive.",
+    copy: {
+      en: {
+        menuEyebrow: "The menu",
+        menuHeading: "Made here. Served when ready.",
+        featuredHeading: "A look at the table",
+        featuredSubheading: "The dishes, as they arrive.",
+      },
+      fr: {
+        menuEyebrow: "La carte",
+        menuHeading: "Fait maison. Servi au bon moment.",
+        featuredHeading: "À table",
+        featuredSubheading: "Les plats, tels qu’ils arrivent.",
+      },
+    },
     photographyDirection:
       "Warm neighbourhood restaurant photography, natural table texture, handmade food, late-afternoon window light, gentle contrast and relaxed generous composition.",
   },

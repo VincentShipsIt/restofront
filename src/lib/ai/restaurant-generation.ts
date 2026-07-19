@@ -59,6 +59,8 @@ function deterministicDraft(source: ExtractedRestaurant): RestaurantDraft {
     phone: source.phone || sampleRestaurant.phone,
     sourceUrl: source.sourceUrl,
     heroImageUrl: source.heroImageUrl || sampleRestaurant.heroImageUrl,
+    defaultLocale: source.sourceLocale ?? "en",
+    translations: [],
     integrations:
       source.links.length > 0 ? source.links : sampleRestaurant.integrations,
   });
@@ -85,6 +87,11 @@ Rules:
 - Never invent booking, ordering, delivery, address, phone, opening-hour, allergen, or price facts.
 - Existing booking and ordering systems must remain external links; do not rename their providers.
 - Preserve every menu item and price that can be recovered.
+- Treat ${source.sourceLocale ?? "the detected source language"} as the canonical locale and put the source wording in the main fields.
+- Set defaultLocale to the canonical source locale using a two-letter language code.
+- When the canonical locale is not English, include one complete "en" translation. When it is English, do not duplicate it in translations.
+- A translation is a linguistic overlay only: its menu sections, items and integrationLabels must have exactly the same order and counts as the canonical data.
+- Translate customer-facing cuisine, eyebrow, description, menu names, menu descriptions, dietary labels and link labels. Never translate restaurant names, provider names, URLs, prices, currencies or image references.
 - Never invent menu items. If menu data is incomplete, return an empty menu section with a factual explanation.
 - Use concise, warm hospitality copy without AI clichés.
 - Return three accessible hex colours in palette, derived from the source website's visible branding and photography rather than a generic restaurant palette.
@@ -97,6 +104,7 @@ ${JSON.stringify({
   description: source.description,
   address: source.address,
   phone: source.phone,
+  sourceLocale: source.sourceLocale,
   links: source.links,
 })}
 
@@ -111,6 +119,16 @@ ${source.pageText.slice(0, 60_000)}`,
     heroImageUrl: source.heroImageUrl || output.heroImageUrl,
     integrations:
       source.links.length > 0 ? source.links : output.integrations,
+    translations: output.translations.map((translation) => ({
+      ...translation,
+      integrationLabels:
+        source.links.length > 0
+          ? source.links.map(
+              (link, index) =>
+                translation.integrationLabels[index] ?? link.label,
+            )
+          : translation.integrationLabels,
+    })),
   });
 
   return draft;

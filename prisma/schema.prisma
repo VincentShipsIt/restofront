@@ -81,6 +81,8 @@ model Restaurant {
   sourceUrl        String?
   logoUrl          String?
   heroImageUrl     String?
+  defaultLocale    String            @default("en")
+  translations     Json              @default("[]")
   status           RestaurantStatus  @default(PROSPECT)
   organizationId   String?
   organization     Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)

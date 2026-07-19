@@ -25,6 +25,31 @@ export const integrationSchema = z.object({
   url: z.url(),
 });
 
+export const localeSchema = z
+  .string()
+  .regex(/^[a-z]{2}(?:-[A-Z]{2})?$/, "Use a BCP 47 language code");
+
+export const restaurantTranslationSchema = z.object({
+  locale: localeSchema,
+  cuisine: z.string().max(80),
+  eyebrow: z.string().max(100),
+  description: z.string().min(20).max(500),
+  menuSections: z.array(
+    z.object({
+      name: z.string().min(1).max(80),
+      description: z.string().max(240).default(""),
+      items: z.array(
+        z.object({
+          name: z.string().min(1).max(120),
+          description: z.string().max(320).default(""),
+          dietaryLabels: z.array(z.string().max(30)).max(6).default([]),
+        }),
+      ),
+    }),
+  ),
+  integrationLabels: z.array(z.string().min(1).max(60)).max(12),
+});
+
 export const restaurantDraftSchema = z.object({
   slug: z.string().min(2).max(80),
   name: z.string().min(2).max(120),
@@ -40,11 +65,63 @@ export const restaurantDraftSchema = z.object({
     foreground: z.string(),
     accent: z.string(),
   }),
+  defaultLocale: localeSchema.default("en"),
+  translations: z.array(restaurantTranslationSchema).max(8).default([]),
   menuSections: z.array(menuSectionSchema).min(1).max(12),
   integrations: z.array(integrationSchema).max(12),
+}).superRefine((draft, context) => {
+  const translatedLocales = new Set<string>();
+  draft.translations.forEach((translation, translationIndex) => {
+    if (translation.locale === draft.defaultLocale) {
+      context.addIssue({
+        code: "custom",
+        path: ["translations"],
+        message: "Translations must not repeat the canonical locale",
+      });
+    }
+    if (translatedLocales.has(translation.locale)) {
+      context.addIssue({
+        code: "custom",
+        path: ["translations"],
+        message: `Duplicate translation locale: ${translation.locale}`,
+      });
+    }
+    translatedLocales.add(translation.locale);
+    if (translation.menuSections.length !== draft.menuSections.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["translations", translationIndex, "menuSections"],
+        message: "Translated menu sections must match the canonical menu",
+      });
+      return;
+    }
+    translation.menuSections.forEach((section, sectionIndex) => {
+      if (section.items.length !== draft.menuSections[sectionIndex].items.length) {
+        context.addIssue({
+          code: "custom",
+          path: [
+            "translations",
+            translationIndex,
+            "menuSections",
+            sectionIndex,
+            "items",
+          ],
+          message: "Translated menu items must match the canonical menu",
+        });
+      }
+    });
+    if (translation.integrationLabels.length !== draft.integrations.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["translations", translationIndex, "integrationLabels"],
+        message: "Translated integration labels must match the canonical links",
+      });
+    }
+  });
 });
 
 export type RestaurantDraft = z.infer<typeof restaurantDraftSchema>;
+export type RestaurantLocale = z.infer<typeof localeSchema>;
 
 export const sampleRestaurant: RestaurantDraft = {
   slug: "osteria-luna",
@@ -63,6 +140,8 @@ export const sampleRestaurant: RestaurantDraft = {
     foreground: "#1d241f",
     accent: "#a5482d",
   },
+  defaultLocale: "en",
+  translations: [],
   menuSections: [
     {
       name: "To begin",
@@ -149,11 +228,54 @@ export function slugify(value: string): string {
 export function formatPrice(
   price: number | null,
   currency = "EUR",
+  locale = "en",
 ): string {
   if (price === null) return "";
-  return new Intl.NumberFormat("en", {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
     minimumFractionDigits: price % 1 === 0 ? 0 : 2,
   }).format(price);
+}
+
+export function getRestaurantLocales(draft: RestaurantDraft): string[] {
+  return [
+    draft.defaultLocale,
+    ...draft.translations.map((translation) => translation.locale),
+  ];
+}
+
+export function localizeRestaurantDraft(
+  draft: RestaurantDraft,
+  locale: string,
+): RestaurantDraft {
+  if (locale === draft.defaultLocale) return draft;
+  const translation = draft.translations.find(
+    (candidate) => candidate.locale === locale,
+  );
+  if (!translation) return draft;
+
+  return {
+    ...draft,
+    cuisine: translation.cuisine,
+    eyebrow: translation.eyebrow,
+    description: translation.description,
+    menuSections: draft.menuSections.map((section, sectionIndex) => ({
+      ...section,
+      name: translation.menuSections[sectionIndex].name,
+      description: translation.menuSections[sectionIndex].description,
+      items: section.items.map((item, itemIndex) => ({
+        ...item,
+        name: translation.menuSections[sectionIndex].items[itemIndex].name,
+        description:
+          translation.menuSections[sectionIndex].items[itemIndex].description,
+        dietaryLabels:
+          translation.menuSections[sectionIndex].items[itemIndex].dietaryLabels,
+      })),
+    })),
+    integrations: draft.integrations.map((integration, integrationIndex) => ({
+      ...integration,
+      label: translation.integrationLabels[integrationIndex],
+    })),
+  };
 }
