@@ -1,15 +1,25 @@
 import { z } from "zod";
 
+export const imageProvenanceSchema = z.enum([
+  "official",
+  "owner",
+  "permissioned-ugc",
+]);
+
+const restaurantImageUrlSchema = z.union([
+  z.url(),
+  z.string().regex(/^\/[a-zA-Z0-9/_\-.]+$/),
+]);
+
 export const menuItemSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().max(320).default(""),
   price: z.number().nonnegative().nullable().default(null),
   currency: z.string().length(3).default("EUR"),
   dietaryLabels: z.array(z.string().max(30)).max(6).default([]),
-  imageUrl: z
-    .union([z.url(), z.string().regex(/^\/[a-zA-Z0-9/_\-.]+$/)])
-    .nullable()
-    .default(null),
+  imageUrl: restaurantImageUrlSchema.nullable().default(null),
+  originalImageUrl: restaurantImageUrlSchema.nullable().optional(),
+  imageProvenance: imageProvenanceSchema.nullable().optional(),
 });
 
 export const menuSectionSchema = z.object({
@@ -60,12 +70,15 @@ export const restaurantDraftSchema = z.object({
   phone: z.string().max(40),
   sourceUrl: z.url().nullable(),
   heroImageUrl: z.url().nullable(),
+  heroOriginalImageUrl: z.url().nullable().optional(),
+  heroImageProvenance: imageProvenanceSchema.nullable().optional(),
   palette: z.object({
     background: z.string(),
     foreground: z.string(),
     accent: z.string(),
   }),
   showMenuImages: z.boolean().default(false),
+  autoEnhanceImages: z.boolean().default(true),
   defaultLocale: localeSchema.default("en"),
   translations: z.array(restaurantTranslationSchema).max(8).default([]),
   menuSections: z.array(menuSectionSchema).min(1).max(12),
@@ -136,12 +149,16 @@ export const sampleRestaurant: RestaurantDraft = {
   sourceUrl: "https://example.com",
   heroImageUrl:
     "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1800&q=88",
+  heroOriginalImageUrl:
+    "https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1800&q=88",
+  heroImageProvenance: "owner",
   palette: {
     background: "#f4efe5",
     foreground: "#1d241f",
     accent: "#a5482d",
   },
   showMenuImages: true,
+  autoEnhanceImages: true,
   defaultLocale: "en",
   translations: [],
   menuSections: [

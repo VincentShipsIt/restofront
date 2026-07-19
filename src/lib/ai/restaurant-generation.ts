@@ -59,9 +59,21 @@ function deterministicDraft(source: ExtractedRestaurant): RestaurantDraft {
     address: source.address || sampleRestaurant.address,
     phone: source.phone || sampleRestaurant.phone,
     sourceUrl: source.sourceUrl,
-    heroImageUrl: source.heroImageUrl || sampleRestaurant.heroImageUrl,
+    heroImageUrl: source.heroImageUrl,
+    heroOriginalImageUrl: source.heroImageUrl,
+    heroImageProvenance: source.heroImageUrl ? "official" : null,
+    autoEnhanceImages: true,
     defaultLocale: source.sourceLocale ?? "en",
     translations: [],
+    menuSections: sampleRestaurant.menuSections.map((section) => ({
+      ...section,
+      items: section.items.map((item) => ({
+        ...item,
+        imageUrl: null,
+        originalImageUrl: null,
+        imageProvenance: null,
+      })),
+    })),
     integrations:
       source.links.length > 0 ? source.links : sampleRestaurant.integrations,
   });
@@ -117,8 +129,20 @@ ${source.pageText.slice(0, 60_000)}`,
     ...output,
     slug: slugify(output.name),
     sourceUrl: source.sourceUrl,
-    heroImageUrl: source.heroImageUrl || output.heroImageUrl,
+    heroImageUrl: source.heroImageUrl,
+    heroOriginalImageUrl: source.heroImageUrl,
+    heroImageProvenance: source.heroImageUrl ? "official" : null,
     showMenuImages: shouldShowMenuImagesByDefault(output.cuisine),
+    autoEnhanceImages: true,
+    menuSections: output.menuSections.map((section) => ({
+      ...section,
+      items: section.items.map((item) => ({
+        ...item,
+        imageUrl: null,
+        originalImageUrl: null,
+        imageProvenance: null,
+      })),
+    })),
     integrations:
       source.links.length > 0 ? source.links : output.integrations,
     translations: output.translations.map((translation) => ({
@@ -136,25 +160,22 @@ ${source.pageText.slice(0, 60_000)}`,
   return draft;
 }
 
-export type FoodImageRequest = {
-  prompt: string;
-  photographyDirection?: string;
-  referenceImageUrls?: string[];
+export type RestaurantImageEnhancementRequest = {
+  sourceImageUrl: string;
+  restaurantName?: string;
+  enhancementNotes?: string;
 };
 
-function parseReferenceImageUrls(urls: string[] = []): URL[] {
-  return urls.slice(0, 3).flatMap((value) => {
-    try {
-      const url = new URL(value);
-      return url.protocol === "https:" ? [url] : [];
-    } catch {
-      return [];
-    }
-  });
+function parseSourceImageUrl(value: string): URL {
+  const url = new URL(value);
+  if (url.protocol !== "https:") {
+    throw new Error("The source image must use HTTPS");
+  }
+  return url;
 }
 
-export async function generateFoodImage(
-  input: string | FoodImageRequest,
+export async function enhanceRestaurantImage(
+  request: RestaurantImageEnhancementRequest,
 ): Promise<{
   data: Uint8Array;
   mediaType: string;
@@ -163,10 +184,12 @@ export async function generateFoodImage(
     throw new Error("AI Gateway is not configured");
   }
 
-  const request = typeof input === "string" ? { prompt: input } : input;
-  const references = parseReferenceImageUrls(request.referenceImageUrls);
-  const direction = request.photographyDirection
-    ? `Restaurant photography direction: ${request.photographyDirection}`
+  const sourceImage = parseSourceImageUrl(request.sourceImageUrl);
+  const context = request.restaurantName
+    ? `Restaurant: ${request.restaurantName}.`
+    : "";
+  const notes = request.enhancementNotes
+    ? `Requested finishing notes: ${request.enhancementNotes}`
     : "";
   const result = await generateText({
     model:
@@ -178,13 +201,18 @@ export async function generateFoodImage(
         content: [
           {
             type: "text",
-            text: `Create one believable restaurant food photograph for the restaurant's own website. Use realistic portions and ingredient textures. Keep the camera, plate family, tabletop, lighting direction and colour grade consistent with the supplied restaurant direction and reference photography. The reference images define visual identity only; do not copy their pictured dishes. No text, logos, people, decorative flowers, impossible ingredients or generic stock-photo styling.
+            text: `Edit this exact restaurant photograph. The result must remain a faithful record of the source image.
 
-${direction}
+Allowed changes: correct exposure and white balance, recover highlights and shadows, reduce noise, improve sharpness and resolution, straighten, crop subtly, and remove only transient non-material distractions such as sensor dust.
 
-Dish request: ${request.prompt}`,
+Forbidden changes: do not add, remove, replace, move, restyle, or regenerate any food, ingredient, garnish, sauce, portion, plating, tableware, furniture, architecture, logo, person, or material background element. Do not change camera geometry or make the scene look like a different service. If a requested adjustment would change what the restaurant actually serves or looks like, leave it unchanged.
+
+Use a natural hospitality colour grade. Avoid plastic textures, exaggerated saturation, fake steam, fake depth of field, and stock-photo polish. Return one enhanced image and no text.
+
+${context}
+${notes}`,
           },
-          ...references.map((image) => ({ type: "image" as const, image })),
+          { type: "image", image: sourceImage },
         ],
       },
     ],
@@ -198,7 +226,7 @@ Dish request: ${request.prompt}`,
   const image = result.files.find((file) =>
     file.mediaType?.startsWith("image/"),
   );
-  if (!image) throw new Error("The image model returned no image");
+  if (!image) throw new Error("The image model returned no enhanced image");
 
   return {
     data: image.uint8Array,

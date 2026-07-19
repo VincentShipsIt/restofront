@@ -39,6 +39,12 @@ enum SubscriptionStatus {
   CANCELED
 }
 
+enum ImageProvenance {
+  OFFICIAL
+  OWNER
+  PERMISSIONED_UGC
+}
+
 model User {
   id          String       @id @default(cuid())
   email       String       @unique
@@ -70,32 +76,35 @@ model Membership {
 }
 
 model Restaurant {
-  id               String            @id @default(cuid())
-  slug             String            @unique
-  name             String
-  description      String?
-  cuisine          String?
-  address          String?
-  phone            String?
-  email            String?
-  sourceUrl        String?
-  logoUrl          String?
-  heroImageUrl     String?
-  showMenuImages   Boolean           @default(false)
-  defaultLocale    String            @default("en")
-  translations     Json              @default("[]")
-  status           RestaurantStatus  @default(PROSPECT)
-  organizationId   String?
-  organization     Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  menuSections     MenuSection[]
-  integrations     Integration[]
-  importJobs       ImportJob[]
-  domains          Domain[]
-  siteVersions     SiteVersion[]
-  claimInvitations ClaimInvitation[]
-  auditEvents      AuditEvent[]
+  id                   String            @id @default(cuid())
+  slug                 String            @unique
+  name                 String
+  description          String?
+  cuisine              String?
+  address              String?
+  phone                String?
+  email                String?
+  sourceUrl            String?
+  logoUrl              String?
+  heroImageUrl         String?
+  heroOriginalImageUrl String?
+  heroImageProvenance  ImageProvenance?
+  showMenuImages       Boolean           @default(false)
+  autoEnhanceImages    Boolean           @default(true)
+  defaultLocale        String            @default("en")
+  translations         Json              @default("[]")
+  status               RestaurantStatus  @default(PROSPECT)
+  organizationId       String?
+  organization         Organization?     @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  menuSections         MenuSection[]
+  integrations         Integration[]
+  importJobs           ImportJob[]
+  domains              Domain[]
+  siteVersions         SiteVersion[]
+  claimInvitations     ClaimInvitation[]
+  auditEvents          AuditEvent[]
 }
 
 model MenuSection {
@@ -109,17 +118,19 @@ model MenuSection {
 }
 
 model MenuItem {
-  id            String      @id @default(cuid())
-  name          String
-  description   String?
-  price         Decimal?    @db.Decimal(10, 2)
-  currency      String      @default("EUR")
-  imageUrl      String?
-  dietaryLabels String[]
-  available     Boolean     @default(true)
-  position      Int         @default(0)
-  sectionId     String
-  section       MenuSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  id               String           @id @default(cuid())
+  name             String
+  description      String?
+  price            Decimal?         @db.Decimal(10, 2)
+  currency         String           @default("EUR")
+  imageUrl         String?
+  originalImageUrl String?
+  imageProvenance  ImageProvenance?
+  dietaryLabels    String[]
+  available        Boolean          @default(true)
+  position         Int              @default(0)
+  sectionId        String
+  section          MenuSection      @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 }
 
 model Integration {

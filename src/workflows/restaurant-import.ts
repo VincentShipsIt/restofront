@@ -1,12 +1,15 @@
 import { getWritable } from "workflow";
 import { getDb } from "@/lib/db";
 import {
-  generateFoodImage,
+  enhanceRestaurantImage,
   generateRestaurantDraft,
 } from "@/lib/ai/restaurant-generation";
-import { inspectSource, type ExtractedRestaurant } from "@/lib/importer";
+import {
+  fetchPublicImage,
+  inspectSource,
+  type ExtractedRestaurant,
+} from "@/lib/importer";
 import type { RestaurantDraft } from "@/lib/restaurant";
-import { buildRestaurantPhotographyDirection } from "@/lib/restaurant-templates";
 import { storeRestaurantImage } from "@/lib/storage/images";
 
 export type RestaurantImportEvent =
@@ -45,15 +48,12 @@ export async function restaurantImportWorkflow(
     message: "Composing the mobile-first preview",
   });
   const draft = await composeDraft(extracted);
-  const illustratedDraft = await illustrateDraft(
-    draft,
-    extracted.heroImageUrl ? [extracted.heroImageUrl] : [],
-  );
+  const enhancedDraft = await enhanceDraftImages(draft);
   await emit({
     type: "progress",
     stage: "compose",
     progress: 88,
-    message: "Checking every menu and integration",
+    message: "Checking every photo, menu and integration",
   });
   await emit({
     type: "progress",
@@ -61,10 +61,10 @@ export async function restaurantImportWorkflow(
     progress: 95,
     message: "Saving the private preview",
   });
-  await persistDraft(illustratedDraft);
-  await emitComplete(illustratedDraft);
-  console.log(`[restaurant-import] DONE slug=${illustratedDraft.slug}`);
-  return illustratedDraft;
+  await persistDraft(enhancedDraft);
+  await emitComplete(enhancedDraft);
+  console.log(`[restaurant-import] DONE slug=${enhancedDraft.slug}`);
+  return enhancedDraft;
 }
 
 async function emit(event: RestaurantImportEvent): Promise<void> {
@@ -119,7 +119,12 @@ async function persistDraft(draft: RestaurantDraft): Promise<void> {
       phone: draft.phone,
       sourceUrl: draft.sourceUrl,
       heroImageUrl: draft.heroImageUrl,
+      heroOriginalImageUrl: draft.heroOriginalImageUrl,
+      heroImageProvenance: toDatabaseImageProvenance(
+        draft.heroImageProvenance,
+      ),
       showMenuImages: draft.showMenuImages,
+      autoEnhanceImages: draft.autoEnhanceImages,
       defaultLocale: draft.defaultLocale,
       translations: draft.translations,
       status: "PREVIEW_READY",
@@ -150,6 +155,10 @@ async function persistDraft(draft: RestaurantDraft): Promise<void> {
               currency: item.currency,
               dietaryLabels: item.dietaryLabels,
               imageUrl: item.imageUrl,
+              originalImageUrl: item.originalImageUrl,
+              imageProvenance: toDatabaseImageProvenance(
+                item.imageProvenance,
+              ),
               position: itemIndex,
             })),
           },
@@ -165,7 +174,12 @@ async function persistDraft(draft: RestaurantDraft): Promise<void> {
       phone: draft.phone,
       sourceUrl: draft.sourceUrl,
       heroImageUrl: draft.heroImageUrl,
+      heroOriginalImageUrl: draft.heroOriginalImageUrl,
+      heroImageProvenance: toDatabaseImageProvenance(
+        draft.heroImageProvenance,
+      ),
       showMenuImages: draft.showMenuImages,
+      autoEnhanceImages: draft.autoEnhanceImages,
       defaultLocale: draft.defaultLocale,
       translations: draft.translations,
       status: "PREVIEW_READY",
@@ -194,6 +208,10 @@ async function persistDraft(draft: RestaurantDraft): Promise<void> {
               currency: item.currency,
               dietaryLabels: item.dietaryLabels,
               imageUrl: item.imageUrl,
+              originalImageUrl: item.originalImageUrl,
+              imageProvenance: toDatabaseImageProvenance(
+                item.imageProvenance,
+              ),
               position: itemIndex,
             })),
           },
@@ -204,120 +222,66 @@ async function persistDraft(draft: RestaurantDraft): Promise<void> {
   console.log(`[restaurant-import:persist] DONE slug=${draft.slug}`);
 }
 
-async function illustrateDraft(
+async function enhanceDraftImages(
   draft: RestaurantDraft,
-  referenceImageUrls: string[],
 ): Promise<RestaurantDraft> {
   "use step";
-  console.log(`[restaurant-import:illustrate] START slug=${draft.slug}`);
+  console.log(`[restaurant-import:enhance] START slug=${draft.slug}`);
   if (
+    !draft.autoEnhanceImages ||
+    !draft.heroImageUrl?.startsWith("https://") ||
     !process.env.BLOB_READ_WRITE_TOKEN ||
     (!process.env.VERCEL_OIDC_TOKEN && !process.env.AI_GATEWAY_API_KEY)
   ) {
-    console.log(`[restaurant-import:illustrate] SKIP slug=${draft.slug}`);
+    console.log(`[restaurant-import:enhance] SKIP slug=${draft.slug}`);
     return draft;
   }
 
-  const photographyDirection = buildRestaurantPhotographyDirection(draft);
-  const menuCandidates = draft.menuSections
-    .flatMap((section, sectionIndex) =>
-      section.items.map((item, itemIndex) => ({
-        item,
-        itemIndex,
-        sectionIndex,
-      })),
-    )
-    .filter(
-      ({ item }) =>
-        !item.imageUrl &&
-        item.description &&
-        !/^(menu|formule|plat du jour|chef'?s choice|prix fixe)/i.test(
-          item.name,
-        ),
-    )
-    .slice(0, 3);
-
-  const heroPromise = draft.heroImageUrl
-    ? Promise.resolve(draft.heroImageUrl)
-    : generateFoodImage({
-        prompt: `${draft.cuisine} signature dish for ${draft.name}. Restaurant description: ${draft.description}`,
-        photographyDirection,
-        referenceImageUrls,
-      })
-        .then((image) =>
-          storeRestaurantImage({
-            restaurantSlug: draft.slug,
-            data: image.data,
-            mediaType: image.mediaType,
-            purpose: "hero",
-          }),
-        )
-        .catch((error) => {
-          console.warn(
-            `[restaurant-import:illustrate] HERO_FALLBACK slug=${draft.slug} error=${
-              error instanceof Error ? error.message : "unknown"
-            }`,
-          );
-          return draft.heroImageUrl;
-        });
-
-  const menuResultsPromise = Promise.all(
-    menuCandidates.map(async ({ item, itemIndex, sectionIndex }) => {
-      try {
-        const image = await generateFoodImage({
-          prompt: `${item.name}. Dish description: ${item.description}. Cuisine: ${draft.cuisine}.`,
-          photographyDirection,
-          referenceImageUrls,
-        });
-        const imageUrl = await storeRestaurantImage({
-          restaurantSlug: draft.slug,
-          data: image.data,
-          mediaType: image.mediaType,
-          purpose: "menu",
-        });
-        return { imageUrl, itemIndex, sectionIndex };
-      } catch (error) {
-        console.warn(
-          `[restaurant-import:illustrate] MENU_FALLBACK slug=${draft.slug} item=${item.name} error=${
-            error instanceof Error ? error.message : "unknown"
-          }`,
-        );
-        return null;
-      }
-    }),
-  );
-
-  const [heroImageUrl, menuResults] = await Promise.all([
-    heroPromise,
-    menuResultsPromise,
-  ]);
-  const generatedMenuImages = new Map<string, string>();
-  for (const result of menuResults) {
-    if (result) {
-      generatedMenuImages.set(
-        `${result.sectionIndex}:${result.itemIndex}`,
-        result.imageUrl,
-      );
-    }
+  const originalUrl = draft.heroOriginalImageUrl ?? draft.heroImageUrl;
+  try {
+    const originalImage = await fetchPublicImage(originalUrl);
+    const storedOriginalUrl = await storeRestaurantImage({
+      restaurantSlug: draft.slug,
+      data: originalImage.data,
+      mediaType: originalImage.mediaType,
+      purpose: "original-hero",
+    });
+    const image = await enhanceRestaurantImage({
+      sourceImageUrl: storedOriginalUrl,
+      restaurantName: draft.name,
+    });
+    const heroImageUrl = await storeRestaurantImage({
+      restaurantSlug: draft.slug,
+      data: image.data,
+      mediaType: image.mediaType,
+      purpose: "hero",
+    });
+    console.log(`[restaurant-import:enhance] DONE slug=${draft.slug}`);
+    return {
+      ...draft,
+      heroImageUrl,
+      heroOriginalImageUrl: storedOriginalUrl,
+      heroImageProvenance: draft.heroImageProvenance ?? "official",
+    };
+  } catch (error) {
+    console.warn(
+      `[restaurant-import:enhance] FALLBACK slug=${draft.slug} error=${
+        error instanceof Error ? error.message : "unknown"
+      }`,
+    );
+    return draft;
   }
-
-  const menuSections = draft.menuSections.map((section, sectionIndex) => ({
-    ...section,
-    items: section.items.map((item, itemIndex) => ({
-      ...item,
-      imageUrl:
-        generatedMenuImages.get(`${sectionIndex}:${itemIndex}`) ??
-        item.imageUrl,
-    })),
-  }));
-
-  console.log(
-    `[restaurant-import:illustrate] DONE slug=${draft.slug} menuImages=${generatedMenuImages.size}`,
-  );
-  return { ...draft, heroImageUrl, menuSections };
 }
 
 async function emitComplete(draft: RestaurantDraft): Promise<void> {
   "use step";
   await emit({ type: "complete", draft });
+}
+
+function toDatabaseImageProvenance(
+  value: RestaurantDraft["heroImageProvenance"],
+): "OFFICIAL" | "OWNER" | "PERMISSIONED_UGC" | undefined {
+  if (!value) return undefined;
+  if (value === "permissioned-ugc") return "PERMISSIONED_UGC";
+  return value.toUpperCase() as "OFFICIAL" | "OWNER";
 }

@@ -26,7 +26,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
         address: draft.address,
         phone: draft.phone,
         heroImageUrl: draft.heroImageUrl,
+        heroOriginalImageUrl: draft.heroOriginalImageUrl,
+        heroImageProvenance: toDatabaseImageProvenance(
+          draft.heroImageProvenance,
+        ),
         showMenuImages: draft.showMenuImages,
+        autoEnhanceImages: draft.autoEnhanceImages,
         defaultLocale: draft.defaultLocale,
         translations: draft.translations,
         menuSections: {
@@ -43,6 +48,10 @@ export async function PUT(request: Request, { params }: RouteContext) {
                 currency: item.currency,
                 dietaryLabels: item.dietaryLabels,
                 imageUrl: item.imageUrl,
+                originalImageUrl: item.originalImageUrl,
+                imageProvenance: toDatabaseImageProvenance(
+                  item.imageProvenance,
+                ),
                 position: itemIndex,
               })),
             },
@@ -73,4 +82,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
       { status: 400 },
     );
   }
+}
+
+function toDatabaseImageProvenance(
+  value: "official" | "owner" | "permissioned-ugc" | null | undefined,
+): "OFFICIAL" | "OWNER" | "PERMISSIONED_UGC" | undefined {
+  if (!value) return undefined;
+  if (value === "permissioned-ugc") return "PERMISSIONED_UGC";
+  return value.toUpperCase() as "OFFICIAL" | "OWNER";
 }

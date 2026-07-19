@@ -9,7 +9,7 @@ Restofront turns an existing restaurant website—or just a restaurant name—in
 3. Recover the menu, contact details, imagery, and external integrations.
 4. Derive the colour palette from the source branding and select a cuisine-aware layout.
 5. Detect the source language, preserve it as canonical, and generate a complete English translation during the same structured AI pass.
-6. Reuse source photography as visual direction and generate up to three missing dish images as one consistent restaurant campaign.
+6. Preserve first-party photography and optionally enhance exposure, colour, crop, noise, and clarity without changing the food or venue.
 7. Save a private preview through a durable Vercel Workflow.
 8. Claim the restaurant through Stripe Checkout; the completed checkout creates the prefilled owner account.
 9. Attach the restaurant domain to the Vercel project and show the exact DNS records.
@@ -59,9 +59,9 @@ The canonical site is available at `/preview/[slug]`; translations use
 - Tailwind CSS v4 and shadcn/ui
 - Prisma 7 with PostgreSQL and the `pg` driver adapter
 - Vercel AI SDK 6 with OpenRouter Auto for structured text generation
-- Vercel AI Gateway for optional generated imagery
+- Vercel AI Gateway for optional source-photo enhancement
 - Vercel Workflow DevKit
-- Vercel Blob for persistent generated imagery
+- Vercel Blob for persistent enhanced derivatives
 - Upstash Redis for public preview rate limits
 - Stripe subscriptions
 - Resend passwordless sign-in links
@@ -102,24 +102,30 @@ to normalize recovered content into a structured restaurant draft:
 OpenRouter Auto selects a compatible language model per import. Structured output
 is schema validated before it is persisted.
 
-For optional generated imagery, link the Vercel project and enable AI Gateway.
+For optional image enhancement, link the Vercel project and enable AI Gateway.
 Vercel provisions `VERCEL_OIDC_TOKEN` automatically in deployments.
 
 - `AI_TEXT_MODEL` defaults to `openai/gpt-5.4`
 - `AI_IMAGE_MODEL` defaults to `google/gemini-3.1-flash-image-preview`
 - `WORKFLOW_ENABLED=true`
 
-### Generated imagery
+### Authentic image enhancement
 
 Create a Vercel Blob store linked to the project:
 
 - `BLOB_READ_WRITE_TOKEN`
 
-Generated hero and menu images are uploaded to public Blob URLs so they remain
-available across browsers and deployments. When source photography is available,
-up to three HTTPS images are supplied as visual-identity references. Every dish
-receives the same restaurant-specific camera, plate, tabletop, lighting, and
-colour-grade direction.
+Restofront never creates a dish photograph from menu text. Enhancement requires
+an existing HTTPS source image from the restaurant, an owner upload, or customer
+UGC with explicit reuse permission. The immutable original URL and its
+provenance are stored alongside the enhanced Blob derivative.
+
+Allowed edits are exposure, white balance, highlight and shadow recovery,
+denoising, sharpness, resolution, straightening, subtle cropping, and removal of
+transient non-material distractions such as sensor dust. Ingredients, garnishes,
+portions, plating, tableware, people, architecture, and material scene elements
+must not be added, removed, replaced, moved, or regenerated. Owners can disable
+automatic enhancement and must review the derivative before publishing.
 
 ### Preview abuse protection
 
@@ -168,9 +174,9 @@ The application first attaches the hostname to the project. It then shows Vercel
 - Stripe webhooks verify the raw body signature.
 - Dashboard sessions are HMAC-signed, HTTP-only, same-site cookies.
 - Restaurant mutations require a session matching the restaurant slug.
-- Image generation and domain management require that same restaurant-scoped session.
+- Image enhancement and domain management require that same restaurant-scoped session.
 - Public preview generation is rate limited and fails closed in production.
-- Generated imagery is persisted to Vercel Blob instead of browser-local object URLs.
+- Enhanced derivatives are persisted to Vercel Blob while authentic originals and provenance remain available.
 - Arbitrary restaurant images load directly in the browser instead of through the Next.js image proxy.
 
 ## Useful routes

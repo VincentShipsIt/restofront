@@ -34,7 +34,6 @@ import {
   formatPrice,
   type RestaurantDraft,
 } from "@/lib/restaurant";
-import { buildRestaurantPhotographyDirection } from "@/lib/restaurant-templates";
 
 type DomainSetup = {
   hostname: string;
@@ -108,44 +107,44 @@ export function Dashboard({
     }
   }
 
-  async function generateImage() {
+  async function enhanceImage() {
+    const sourceImageUrl =
+      draft.heroOriginalImageUrl ?? draft.heroImageUrl;
+    if (!sourceImageUrl?.startsWith("https://")) return;
+
     setImageLoading(true);
     try {
-      const response = await fetch("/api/images/generate", {
+      const response = await fetch("/api/images/enhance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: `${draft.cuisine} signature dish for ${draft.name}, visually consistent with a warm independent neighbourhood restaurant`,
+          sourceImageUrl,
           restaurantSlug: draft.slug,
-          photographyDirection:
-            buildRestaurantPhotographyDirection(draft),
-          referenceImageUrls: [
-            draft.heroImageUrl,
-            ...draft.menuSections.flatMap((section) =>
-              section.items.map((item) => item.imageUrl),
-            ),
-          ]
-            .filter(
-              (url): url is string =>
-                Boolean(url?.startsWith("https://")),
-            )
-            .slice(0, 3),
+          restaurantName: draft.name,
         }),
       });
       const result = (await response.json()) as {
         url?: string;
+        originalUrl?: string;
         error?: string;
       };
       if (!response.ok || !result.url) {
-        throw new Error(result.error ?? "Image could not be generated");
+        throw new Error(result.error ?? "Image could not be enhanced");
       }
       setDraft((current) => ({
         ...current,
         heroImageUrl: result.url ?? current.heroImageUrl,
+        heroOriginalImageUrl:
+          current.heroOriginalImageUrl ??
+          result.originalUrl ??
+          current.heroImageUrl,
+        heroImageProvenance:
+          current.heroImageProvenance ??
+          (current.sourceUrl ? "official" : "owner"),
       }));
     } catch (caught) {
       alert(
-        caught instanceof Error ? caught.message : "Image could not be generated",
+        caught instanceof Error ? caught.message : "Image could not be enhanced",
       );
     } finally {
       setImageLoading(false);
@@ -430,24 +429,54 @@ export function Dashboard({
             <TabsContent value="imagery" className="mt-0">
               <PageHeading
                 eyebrow="Image library"
-                title="Real first. Generated where useful."
-                copy="Review every visual before it reaches the public website."
+                title="Authentic photos, professionally finished."
+                copy="Restofront improves light, colour, crop and clarity without inventing dishes or changing what guests will receive."
                 action={
                   <Button
                     size="sm"
-                    onClick={() => void generateImage()}
-                    disabled={imageLoading}
+                    onClick={() => void enhanceImage()}
+                    disabled={
+                      imageLoading ||
+                      !(
+                        draft.heroOriginalImageUrl ??
+                        draft.heroImageUrl
+                      )?.startsWith("https://")
+                    }
                   >
                     {imageLoading ? (
                       <LoaderCircle className="animate-spin" />
                     ) : (
                       <Sparkles />
                     )}
-                    Generate hero option
+                    Enhance current hero
                   </Button>
                 }
               />
               <Card className="mt-8">
+                <CardContent className="flex items-center justify-between gap-6 pt-6">
+                  <div>
+                    <Label htmlFor="auto-enhance-images" className="text-sm">
+                      Automatically enhance approved photos
+                    </Label>
+                    <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">
+                      Uses only restaurant-owned or permissioned customer
+                      photos. Originals remain stored and every enhanced image
+                      still requires review.
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto-enhance-images"
+                    checked={draft.autoEnhanceImages}
+                    onCheckedChange={(checked) =>
+                      setDraft((current) => ({
+                        ...current,
+                        autoEnhanceImages: checked,
+                      }))
+                    }
+                  />
+                </CardContent>
+              </Card>
+              <Card className="mt-4">
                 <CardContent className="flex items-center justify-between gap-6 pt-6">
                   <div>
                     <Label htmlFor="show-menu-images" className="text-sm">
@@ -485,7 +514,13 @@ export function Dashboard({
                           style={{ backgroundImage: `url("${src as string}")` }}
                         />
                         <Badge className="absolute left-3 top-3 bg-black/60 text-white">
-                          {index === 0 ? "Current hero" : "Menu image"}
+                          {index === 0
+                            ? draft.heroOriginalImageUrl &&
+                              draft.heroImageUrl !==
+                                draft.heroOriginalImageUrl
+                              ? "Enhanced from authentic original"
+                              : "Authentic original"
+                            : "Approved menu image"}
                         </Badge>
                       </div>
                     </Card>
