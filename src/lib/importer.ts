@@ -19,6 +19,7 @@ export type ExtractedLink = {
 export type ExtractedRestaurant = {
   source: string;
   sourceUrl: string | null;
+  sourceLocale: string | null;
   name: string;
   description: string;
   address: string;
@@ -200,6 +201,16 @@ function extractTitle(html: string): string {
   );
 }
 
+function extractDocumentLocale(html: string): string | null {
+  const locale =
+    html.match(/<html[^>]+lang=["']([^"']+)["']/i)?.[1] ??
+    metaContent(html, "content-language");
+  const normalized = locale?.trim().replace("_", "-");
+  return normalized && /^[a-z]{2}(?:-[A-Z]{2})?$/i.test(normalized)
+    ? normalized.split("-")[0].toLowerCase()
+    : null;
+}
+
 function stripMarkup(html: string): string {
   return decodeHtml(
     html
@@ -342,6 +353,7 @@ export async function inspectSource(rawSource: string): Promise<ExtractedRestaur
     return {
       source,
       sourceUrl: null,
+      sourceLocale: null,
       name: source,
       description: "",
       address: "",
@@ -396,6 +408,7 @@ export async function inspectSource(rawSource: string): Promise<ExtractedRestaur
   return {
     source,
     sourceUrl: finalUrl.toString(),
+    sourceLocale: extractDocumentLocale(html),
     name: extractTitle(html) || finalUrl.hostname.replace(/^www\./, ""),
     description:
       metaContent(html, "og:description") ||

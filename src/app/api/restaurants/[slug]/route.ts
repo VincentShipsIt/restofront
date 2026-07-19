@@ -26,6 +26,8 @@ export async function PUT(request: Request, { params }: RouteContext) {
         address: draft.address,
         phone: draft.phone,
         heroImageUrl: draft.heroImageUrl,
+        defaultLocale: draft.defaultLocale,
+        translations: draft.translations,
         menuSections: {
           deleteMany: {},
           create: draft.menuSections.map((section, sectionIndex) => ({

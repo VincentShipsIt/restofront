@@ -119,6 +119,8 @@ async function persistDraft(draft: RestaurantDraft): Promise<void> {
       phone: draft.phone,
       sourceUrl: draft.sourceUrl,
       heroImageUrl: draft.heroImageUrl,
+      defaultLocale: draft.defaultLocale,
+      translations: draft.translations,
       status: "PREVIEW_READY",
       integrations: {
         deleteMany: {},
@@ -162,6 +164,8 @@ async function persistDraft(draft: RestaurantDraft): Promise<void> {
       phone: draft.phone,
       sourceUrl: draft.sourceUrl,
       heroImageUrl: draft.heroImageUrl,
+      defaultLocale: draft.defaultLocale,
+      translations: draft.translations,
       status: "PREVIEW_READY",
       integrations: {
         create: draft.integrations.map((integration) => ({
