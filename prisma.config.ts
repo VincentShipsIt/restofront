@@ -1,5 +1,7 @@
-import "dotenv/config";
-import { defineConfig } from "prisma/config";
+import { loadEnvConfig } from "@next/env";
+import { defineConfig, env } from "prisma/config";
+
+loadEnvConfig(process.cwd());
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -7,8 +9,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url:
-      process.env.DATABASE_URL ??
-      "postgresql://postgres:postgres@localhost:5432/restofront?schema=public",
+    url: env("DATABASE_URL"),
   },
 });
