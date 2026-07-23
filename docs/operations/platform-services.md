@@ -1,23 +1,24 @@
 # Platform services runbook
 
-Restofront needs PostgreSQL, Upstash Redis, and Vercel Blob before a preview or
-production deployment can accept public imports. Provisioning remains a manual,
-reviewed infrastructure action; application deployments do not create paid
-resources.
+Restofront needs PostgreSQL, Redis, and Amazon S3 before production can accept
+public imports. Production runs on the shared `api.shipshit.dev` EC2 host in an
+isolated container, while data services and credentials remain isolated.
 
 ## Environment isolation
 
-Create separate provider resources for the Vercel `Preview` and `Production`
-scopes. Never copy the production database URL into Preview.
+Never copy production database or AWS credentials into pull-request builds.
+CI uses non-connecting placeholders; runtime credentials are loaded from
+encrypted SSM parameters on the EC2 host.
 
-| Service | Preview | Production | Runtime variables |
-| --- | --- | --- | --- |
-| PostgreSQL | Dedicated preview database or branch | Dedicated production database | `DATABASE_URL` |
-| Upstash Redis | Dedicated preview database | Dedicated production database | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` |
-| Vercel Blob | Dedicated preview store | Dedicated production store | `BLOB_READ_WRITE_TOKEN` |
+| Service | Production isolation | Runtime variables |
+| --- | --- | --- |
+| PostgreSQL | Dedicated database and login on the existing private RDS instance | `DATABASE_URL` |
+| Workflow | PostgreSQL World with a Restofront job prefix and bounded concurrency | `WORKFLOW_*` |
+| Redis | Dedicated container and persistent Docker volume, not published to the host | `REDIS_URL` |
+| Images | Private versioned S3 bucket served through CloudFront OAC | `AWS_REGION`, `S3_BUCKET`, `S3_PUBLIC_BASE_URL` |
 
-After configuring each scope, redeploy it and request `/api/health/ready`. The
-route returns `200` only when all three services are configured and reachable.
+After configuring production, redeploy it and request `/api/health/ready`. The
+route returns `200` only when all three runtime services are reachable.
 It returns `503` with variable names and remediation guidance when configuration
 is missing or a provider cannot be reached. It never returns connection URLs,
 tokens, or provider error bodies.
@@ -37,15 +38,14 @@ Production.
 6. Record the migration name, target environment, operator, and backup reference
    in the release record.
 
-Run Preview first. A failed migration must stop the release; inspect the
-`_prisma_migrations` record and the provider logs before using
-`prisma migrate resolve`. Never mark a failed migration as applied without
-reviewing the resulting schema.
+The container applies committed Prisma migrations and the idempotent Workflow
+bootstrap before it starts accepting traffic. A candidate must pass its
+container health check before Caddy is reloaded. A failed migration stops the
+candidate and leaves the current production container running.
 
 ## Backup and restore
 
-- Enable the managed database provider's continuous backup or point-in-time
-  recovery before the first production migration.
+- RDS keeps seven days of automated backups with deletion protection enabled.
 - Keep Preview restore drills separate from Production. Perform a quarterly
   restore into a new, isolated database and verify the migration table and a
   sample restaurant record before deleting the drill database.
@@ -53,9 +53,8 @@ reviewing the resulting schema.
   any later reviewed migrations, validating it, then replacing `DATABASE_URL`
   through a reviewed environment change. Do not overwrite the existing database
   in place.
-- Blob originals and enhanced derivatives are operational data. Retain authentic
-  source URLs and provenance in PostgreSQL; verify the store's retention policy
-  before onboarding the first restaurant.
+- S3 versioning protects image originals and derivatives from accidental
+  replacement. Retain authentic source URLs and provenance in PostgreSQL.
 
 ## Credential ownership and rotation
 
@@ -64,12 +63,34 @@ release approval. A migration operator may execute the reviewed commands but
 must not copy credentials into issues, pull requests, logs, or local production
 environment files.
 
-Rotate database, Redis, and Blob credentials every 90 days and immediately after
+Rotate database and external-provider credentials every 90 days and immediately after
 suspected exposure or an operator access change:
 
-1. Create the replacement credential in the provider.
-2. Update Preview and verify readiness.
-3. Update Production during a reviewed release window and verify readiness.
-4. Revoke the old credential only after both environments are healthy.
+1. Create the replacement credential.
+2. Update the matching SecureString under
+   `/shipshit/production/restofront/`.
+3. Deploy the exact reviewed image and verify readiness.
+4. Revoke the old credential only after production is healthy.
 5. Record the date, owner, affected environment, and verification result without
    recording the credential value.
+
+## Deployment
+
+GitHub Actions builds the Docker image without production secrets, uploads the
+immutable image archive to the private deployment bucket, and assumes the
+repository-scoped AWS OIDC role. The role may upload only Restofront artifacts
+and send only `AWS-RunShellScript` commands to the production instance.
+
+The host deployment script:
+
+1. Loads Restofront parameters from SSM without printing them.
+2. Starts or verifies the isolated Redis container.
+3. Loads the exact image artifact and starts a candidate.
+4. Waits for `/api/health/ready`.
+5. Swaps container names, reloads Caddy, and rolls back on failure.
+
+Route53 sends `restofront.com`, `www.restofront.com`, and
+`domains.restofront.com` to the EC2 Elastic IP. Caddy owns TLS termination.
+Customer domains use on-demand TLS, gated by
+`/api/domains/authorize`; unverified hostnames cannot cause certificate
+issuance.

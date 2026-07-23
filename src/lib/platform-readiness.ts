@@ -1,8 +1,8 @@
-import { Redis } from "@upstash/redis";
-import { list } from "@vercel/blob";
+import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
 import { getDb } from "@/lib/db";
+import { getRedisClient } from "@/lib/redis";
 
-export type PlatformService = "database" | "rateLimit" | "blob";
+export type PlatformService = "database" | "rateLimit" | "storage";
 export type PlatformServiceStatus =
   | "ready"
   | "misconfigured"
@@ -83,36 +83,49 @@ function validateDatabase(
 }
 
 function validateRateLimit(env: Environment): ServiceReadiness | null {
-  const url = env.UPSTASH_REDIS_REST_URL;
-  const token = env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) {
+  const url = env.REDIS_URL;
+  if (!url) {
     return {
       service: "rateLimit",
       status: "misconfigured",
-      message:
-        "Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN for this deployment environment.",
+      message: "Set REDIS_URL for this deployment environment.",
     };
   }
 
   try {
-    if (new URL(url).protocol !== "https:") throw new Error("not HTTPS");
+    const protocol = new URL(url).protocol;
+    if (protocol !== "redis:" && protocol !== "rediss:") {
+      throw new Error("unsupported protocol");
+    }
   } catch {
     return {
       service: "rateLimit",
       status: "misconfigured",
-      message: "UPSTASH_REDIS_REST_URL must be a valid HTTPS URL.",
+      message: "REDIS_URL must be a valid Redis connection URL.",
     };
   }
 
   return null;
 }
 
-function validateBlob(env: Environment): ServiceReadiness | null {
-  if (!env.BLOB_READ_WRITE_TOKEN) {
+function validateStorage(env: Environment): ServiceReadiness | null {
+  if (!env.S3_BUCKET || !env.S3_PUBLIC_BASE_URL || !env.AWS_REGION) {
     return {
-      service: "blob",
+      service: "storage",
       status: "misconfigured",
-      message: "Set BLOB_READ_WRITE_TOKEN for this deployment environment.",
+      message:
+        "Set S3_BUCKET, S3_PUBLIC_BASE_URL, and AWS_REGION for this deployment environment.",
+    };
+  }
+  try {
+    if (new URL(env.S3_PUBLIC_BASE_URL).protocol !== "https:") {
+      throw new Error("not HTTPS");
+    }
+  } catch {
+    return {
+      service: "storage",
+      status: "misconfigured",
+      message: "S3_PUBLIC_BASE_URL must be a valid HTTPS URL.",
     };
   }
   return null;
@@ -125,7 +138,7 @@ function configurationError(
 ) {
   if (service === "database") return validateDatabase(env, environment);
   if (service === "rateLimit") return validateRateLimit(env);
-  return validateBlob(env);
+  return validateStorage(env);
 }
 
 function createDefaultProbes(env: Environment): ReadinessProbes {
@@ -134,15 +147,13 @@ function createDefaultProbes(env: Environment): ReadinessProbes {
       await getDb().$queryRawUnsafe("SELECT 1");
     },
     rateLimit: async () => {
-      const redis = new Redis({
-        url: env.UPSTASH_REDIS_REST_URL,
-        token: env.UPSTASH_REDIS_REST_TOKEN,
-      });
+      const redis = await getRedisClient();
       const response = await redis.ping();
       if (response !== "PONG") throw new Error("Redis ping failed");
     },
-    blob: async () => {
-      await list({ limit: 1, token: env.BLOB_READ_WRITE_TOKEN });
+    storage: async () => {
+      const s3 = new S3Client({ region: env.AWS_REGION });
+      await s3.send(new HeadBucketCommand({ Bucket: env.S3_BUCKET }));
     },
   };
 }
@@ -170,7 +181,7 @@ export async function checkPlatformReadiness(
 ): Promise<PlatformReadiness> {
   const environment = deploymentEnvironment(env);
   const services = await Promise.all(
-    (["database", "rateLimit", "blob"] satisfies PlatformService[]).map(
+    (["database", "rateLimit", "storage"] satisfies PlatformService[]).map(
       async (service): Promise<ServiceReadiness> => {
         const error = configurationError(service, env, environment);
         if (error) return error;

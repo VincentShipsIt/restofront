@@ -610,8 +610,8 @@ export function Dashboard({
                       Add domain
                     </Button>
                     <p className="mt-4 text-xs leading-5 text-muted-foreground">
-                      Restofront requests the SSL certificate and attaches the
-                      domain before asking for DNS changes.
+                      Restofront authorizes the domain for automatic SSL before
+                      asking for DNS changes.
                     </p>
                   </CardContent>
                 </Card>
@@ -681,8 +681,8 @@ export function Dashboard({
                     ) : (
                       <ol className="space-y-5 text-sm">
                         {[
-                          "Restofront attaches the domain to the production project.",
-                          "The exact DNS record appears here for copying into Namecheap.",
+                          "Restofront authorizes the domain on the production host.",
+                          "The exact DNS record appears here for copying into your DNS provider.",
                           "Once DNS resolves, SSL is issued and the new site becomes live.",
                         ].map((step, index) => (
                           <li key={step} className="flex gap-3">

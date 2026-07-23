@@ -30,7 +30,7 @@ function getTextModel() {
       compatibility: "strict",
       headers: {
         "HTTP-Referer":
-          process.env.NEXT_PUBLIC_APP_URL ?? "https://restofront.vercel.app",
+          process.env.NEXT_PUBLIC_APP_URL ?? "https://restofront.com",
         "X-Title": "Restofront",
       },
     });

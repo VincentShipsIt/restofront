@@ -22,32 +22,13 @@ const hostnameSchema = z
       ),
   );
 
-async function attachToVercel(hostname: string) {
-  const token = process.env.VERCEL_TOKEN;
-  const projectId = process.env.VERCEL_PROJECT_ID;
-  if (!token || !projectId) return null;
-  const teamId = process.env.VERCEL_TEAM_ID;
-  const query = teamId ? `?teamId=${encodeURIComponent(teamId)}` : "";
-  const response = await fetch(
-    `https://api.vercel.com/v10/projects/${encodeURIComponent(projectId)}/domains${query}`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name: hostname }),
-    },
-  );
-  const result = (await response.json()) as {
-    verified?: boolean;
-    verification?: Array<{ type: string; domain: string; value: string }>;
-    error?: { message?: string };
-  };
-  if (!response.ok) {
-    throw new Error(result.error?.message ?? "Vercel rejected this domain");
+function getDomainTarget() {
+  const address = process.env.PUBLIC_APP_IP;
+  const cname = process.env.CUSTOM_DOMAIN_CNAME;
+  if (!address || !cname) {
+    throw new Error("Customer domain routing is not configured");
   }
-  return result;
+  return { address, cname: cname.replace(/\.$/, "").toLowerCase() };
 }
 
 export async function POST(request: Request) {
@@ -92,7 +73,7 @@ export async function POST(request: Request) {
       restaurantId = restaurant.id;
     }
 
-    const vercel = await attachToVercel(hostname);
+    const target = getDomainTarget();
     const verificationToken = randomBytes(24).toString("base64url");
     if (db && restaurantId) {
       await db.domain.upsert({
@@ -109,23 +90,18 @@ export async function POST(request: Request) {
     const isApex = hostname.split(".").length === 2;
     return Response.json({
       hostname,
-      attached: Boolean(vercel),
-      verified: vercel?.verified ?? false,
+      attached: true,
+      verified: false,
       records:
-        vercel?.verification?.map((record) => ({
-          type: record.type,
-          name: record.domain,
-          value: record.value,
-        })) ??
-        (isApex
-          ? [{ type: "A", name: "@", value: "76.76.21.21" }]
+        isApex
+          ? [{ type: "A", name: "@", value: target.address }]
           : [
               {
                 type: "CNAME",
                 name: hostname.split(".")[0],
-                value: "cname.vercel-dns-0.com",
+                value: target.cname,
               },
-            ]),
+            ],
     });
   } catch (error) {
     return Response.json(
@@ -172,9 +148,12 @@ export async function GET(request: Request) {
     ]);
     const addresses = aResult.status === "fulfilled" ? aResult.value : [];
     const cnames = cnameResult.status === "fulfilled" ? cnameResult.value : [];
+    const target = getDomainTarget();
     const verified =
-      addresses.includes("76.76.21.21") ||
-      cnames.some((value) => value.includes("vercel-dns"));
+      addresses.includes(target.address) ||
+      cnames.some(
+        (value) => value.replace(/\.$/, "").toLowerCase() === target.cname,
+      );
 
     if (verified && process.env.DATABASE_URL) {
       await getDb().domain.updateMany({
