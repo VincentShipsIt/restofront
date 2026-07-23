@@ -5,7 +5,7 @@ import {
   getRestaurantLocales,
   localizeRestaurantDraft,
 } from "@/lib/restaurant";
-import { getRestaurantDraft } from "@/lib/restaurants";
+import { findRestaurantDraft } from "@/lib/restaurants";
 
 type PageProps = {
   params: Promise<{ slug: string; locale: string }>;
@@ -15,7 +15,8 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug, locale } = await params;
-  const draft = await getRestaurantDraft(slug);
+  const draft = await findRestaurantDraft(slug);
+  if (!draft) notFound();
   const locales = getRestaurantLocales(draft);
   if (!locales.includes(locale)) notFound();
 
@@ -41,7 +42,8 @@ export async function generateMetadata({
 
 export default async function LocalizedPreviewPage({ params }: PageProps) {
   const { slug, locale } = await params;
-  const draft = await getRestaurantDraft(slug);
+  const draft = await findRestaurantDraft(slug);
+  if (!draft) notFound();
   const locales = getRestaurantLocales(draft);
   if (!locales.includes(locale)) notFound();
 

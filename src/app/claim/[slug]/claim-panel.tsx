@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -49,23 +49,11 @@ export function ClaimPanel({
   slug: string;
   fallbackDraft: RestaurantDraft;
 }) {
-  const [draft, setDraft] = useState(fallbackDraft);
+  const draft = fallbackDraft;
   const [plan, setPlan] = useState<"starter" | "growth">("growth");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      try {
-        const saved = window.localStorage.getItem("restofront:draft");
-        if (saved) setDraft(JSON.parse(saved) as RestaurantDraft);
-      } catch {
-        // The server-provided preview remains usable if local data is corrupt.
-      }
-    }, 0);
-    return () => window.clearTimeout(timeout);
-  }, []);
 
   async function checkout() {
     if (!email) return;

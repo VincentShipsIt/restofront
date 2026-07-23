@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { ClaimPanel } from "@/app/claim/[slug]/claim-panel";
 import { Button } from "@/components/ui/button";
-import { getRestaurantDraft } from "@/lib/restaurants";
+import { findRestaurantDraft } from "@/lib/restaurants";
 
 export const metadata: Metadata = {
   title: "Claim this restaurant",
@@ -17,7 +18,8 @@ export default async function ClaimPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const draft = await getRestaurantDraft(slug);
+  const draft = await findRestaurantDraft(slug);
+  if (!draft) notFound();
 
   return (
     <main className="min-h-screen">

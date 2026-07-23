@@ -4,6 +4,14 @@ import { z } from "zod";
 import { generateRestaurantDraft } from "@/lib/ai/restaurant-generation";
 import { inspectSource } from "@/lib/importer";
 import { limitPublicPreview } from "@/lib/rate-limit";
+import {
+  createImportJob,
+  ImportConflictError,
+  ImportDatabaseUnavailableError,
+  persistRestaurantImport,
+  recordImportFailure,
+  updateImportJob,
+} from "@/lib/restaurant-import-persistence";
 import { restaurantImportWorkflow } from "@/workflows/restaurant-import";
 
 export const runtime = "nodejs";
@@ -14,6 +22,8 @@ const requestSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  let importJobId: string | null = null;
+
   try {
     const { source } = requestSchema.parse(await request.json());
     const rateLimit = await limitPublicPreview(request);
@@ -35,20 +45,57 @@ export async function POST(request: Request) {
       );
     }
 
+    const importJob = await createImportJob(source);
+    importJobId = importJob.id;
+
     if (process.env.WORKFLOW_ENABLED === "true") {
-      const run = await start(restaurantImportWorkflow, [source]);
+      const run = await start(restaurantImportWorkflow, [
+        source,
+        importJob.id,
+      ]);
+      await updateImportJob(importJob.id, { workflowRunId: run.runId });
       return NextResponse.json({
         mode: "workflow",
         runId: run.runId,
+        importJobId: importJob.id,
       });
     }
 
+    await updateImportJob(importJob.id, { status: "CRAWLING" });
     const extracted = await inspectSource(source);
+    await updateImportJob(importJob.id, { status: "EXTRACTING" });
+    await updateImportJob(importJob.id, { status: "GENERATING" });
     const draft = await generateRestaurantDraft(extracted);
-    return NextResponse.json({ mode: "inline", draft });
+    const persisted = await persistRestaurantImport({
+      draft,
+      source,
+      importJobId: importJob.id,
+    });
+    return NextResponse.json({
+      mode: "inline",
+      ...persisted,
+    });
   } catch (error) {
+    if (importJobId) {
+      try {
+        await recordImportFailure(importJobId, error);
+      } catch (recordError) {
+        console.error("[restaurant-import] failed to record import error", {
+          importJobId,
+          error:
+            recordError instanceof Error ? recordError.message : "unknown",
+        });
+      }
+    }
+
+    const status =
+      error instanceof ImportDatabaseUnavailableError
+        ? 503
+        : error instanceof ImportConflictError
+          ? 409
+          : 400;
     const message =
       error instanceof Error ? error.message : "Unable to import this restaurant";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: message, importJobId }, { status });
   }
 }

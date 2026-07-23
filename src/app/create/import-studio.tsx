@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Check,
   CircleAlert,
+  ExternalLink,
   Globe2,
   LoaderCircle,
   Monitor,
@@ -23,6 +24,7 @@ import {
   sampleRestaurant,
   type RestaurantDraft,
 } from "@/lib/restaurant";
+import type { ImportUrls } from "@/lib/restaurant-import-persistence";
 
 type Stage = {
   label: string;
@@ -38,8 +40,13 @@ const stages: Stage[] = [
 ];
 
 type ImportResponse =
-  | { mode: "inline"; draft: RestaurantDraft }
-  | { mode: "workflow"; runId: string }
+  | {
+      mode: "inline";
+      draft: RestaurantDraft;
+      importJobId: string;
+      urls: ImportUrls;
+    }
+  | { mode: "workflow"; runId: string; importJobId: string }
   | { error: string };
 
 export function ImportStudio({ initialSource }: { initialSource: string }) {
@@ -51,6 +58,7 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
     hasInitialSource ? "Opening the restaurant" : "Ready when you are",
   );
   const [draft, setDraft] = useState<RestaurantDraft | null>(null);
+  const [urls, setUrls] = useState<ImportUrls | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(hasInitialSource);
   const [device, setDevice] = useState<"mobile" | "desktop">("mobile");
@@ -64,6 +72,7 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
     setPreviewSource(cleanSource);
     setLoading(true);
     setDraft(null);
+    setUrls(null);
     setError(null);
     setProgress(6);
     setMessage("Opening the restaurant");
@@ -82,7 +91,7 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
       }
 
       if (result.mode === "inline") {
-        complete(result.draft);
+        complete(result.draft, result.urls);
         return;
       }
 
@@ -96,7 +105,12 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
               progress: number;
               message: string;
             }
-          | { type: "complete"; draft: RestaurantDraft }
+          | {
+              type: "complete";
+              draft: RestaurantDraft;
+              importJobId: string;
+              urls: ImportUrls;
+            }
           | { type: "failed"; message: string };
         try {
           update = JSON.parse(event.data) as typeof update;
@@ -112,7 +126,7 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
         }
         if (update.type === "complete") {
           events.close();
-          complete(update.draft);
+          complete(update.draft, update.urls);
         }
         if (update.type === "failed") {
           events.close();
@@ -135,12 +149,12 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
     }
   }
 
-  function complete(nextDraft: RestaurantDraft) {
+  function complete(nextDraft: RestaurantDraft, nextUrls: ImportUrls) {
     setProgress(100);
     setMessage("Private preview ready");
     setDraft(nextDraft);
+    setUrls(nextUrls);
     setLoading(false);
-    window.localStorage.setItem("restofront:draft", JSON.stringify(nextDraft));
   }
 
   useEffect(() => {
@@ -154,7 +168,10 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
   function useDemo() {
     setSource("Osteria Luna");
     setError(null);
-    complete(sampleRestaurant);
+    complete(sampleRestaurant, {
+      preview: `/preview/${sampleRestaurant.slug}`,
+      claim: `/claim/${sampleRestaurant.slug}`,
+    });
   }
 
   return (
@@ -309,7 +326,7 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
             </div>
           ) : null}
 
-          {draft ? (
+          {draft && urls ? (
             <div className="mt-8 rounded-2xl border border-primary/20 bg-primary/5 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <span className="grid size-5 place-items-center rounded-full bg-primary text-primary-foreground">
@@ -321,14 +338,23 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
                 Review the menu and existing links, then choose a plan to keep
                 this site current.
               </p>
-              <Button
-                render={<Link href={`/claim/${draft.slug}`} />}
-                nativeButton={false}
-                className="mt-4 w-full"
-              >
-                Claim {draft.name}
-                <ArrowRight />
-              </Button>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button
+                  render={<Link href={urls.preview} target="_blank" />}
+                  nativeButton={false}
+                  variant="outline"
+                >
+                  Preview
+                  <ExternalLink />
+                </Button>
+                <Button
+                  render={<Link href={urls.claim} />}
+                  nativeButton={false}
+                >
+                  Claim
+                  <ArrowRight />
+                </Button>
+              </div>
             </div>
           ) : null}
         </aside>

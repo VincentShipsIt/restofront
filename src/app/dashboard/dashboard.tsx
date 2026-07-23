@@ -74,7 +74,6 @@ export function Dashboard({
         });
         if (!response.ok) throw new Error("Save failed");
       }
-      window.localStorage.setItem("restofront:draft", JSON.stringify(draft));
       setSaved(true);
     } finally {
       setSaving(false);
