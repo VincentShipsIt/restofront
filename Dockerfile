@@ -4,6 +4,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ARG DATABASE_URL=postgresql://build:build@127.0.0.1:5432/restofront_build
 ENV DATABASE_URL=$DATABASE_URL
 COPY package.json bun.lock ./
+COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN bun install --frozen-lockfile
 
 FROM dependencies AS builder
