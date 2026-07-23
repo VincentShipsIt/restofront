@@ -70,19 +70,27 @@ The canonical site is available at `/preview/[slug]`; translations use
 ## Local setup
 
 ```bash
-bun install
 cp .env.example .env.local
+bun install
 bun run dev
 ```
 
 The marketing site and deterministic preview flow work without external credentials. Production integrations activate when their environment variables are configured.
 
 Do not run migrations against production from a local machine. Create the
-database, then apply the committed migrations through the deployment workflow:
+database, then apply the committed migrations through the reviewed release
+environment:
 
 ```bash
-bunx --bun prisma migrate deploy
+bun run db:migrate:status
+bun run db:migrate:deploy
 ```
+
+Preview and production service isolation, readiness checks, backups, restores,
+and credential rotation are documented in
+[`docs/operations/platform-services.md`](docs/operations/platform-services.md).
+The uncached `/api/health/ready` route verifies PostgreSQL, Upstash Redis, and
+Vercel Blob without returning secret values.
 
 ## Required production configuration
 
