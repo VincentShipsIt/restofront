@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Globe2 } from "lucide-react";
+import { ArrowRight, Globe2, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -16,16 +16,20 @@ export function ImportForm({
 }) {
   const router = useRouter();
   const [source, setSource] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!source.trim()) return;
-    router.push(`/create?source=${encodeURIComponent(source.trim())}`);
+    startTransition(() => {
+      router.push(`/create?source=${encodeURIComponent(source.trim())}`);
+    });
   }
 
   return (
     <form
       onSubmit={submit}
+      aria-busy={isPending}
       className={cn(
         "flex w-full flex-col gap-2 rounded-2xl border bg-card p-2 shadow-[0_18px_60px_-24px_rgba(68,40,20,0.28)] sm:flex-row",
         compact ? "max-w-2xl" : "max-w-xl",
@@ -42,9 +46,23 @@ export function ImportForm({
           aria-label="Restaurant website or name"
         />
       </div>
-      <Button type="submit" size="lg" className="h-11 shrink-0 rounded-xl">
-        Build the preview
-        <ArrowRight className="size-4" />
+      <Button
+        type="submit"
+        size="lg"
+        className="h-11 shrink-0 rounded-xl"
+        disabled={!source.trim() || isPending}
+      >
+        {isPending ? (
+          <>
+            <LoaderCircle className="size-4 animate-spin" />
+            Opening your restaurant
+          </>
+        ) : (
+          <>
+            Show my preview
+            <ArrowRight className="size-4" />
+          </>
+        )}
       </Button>
     </form>
   );

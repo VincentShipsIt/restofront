@@ -33,10 +33,19 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="hidden items-center gap-2 md:flex">
-          <Button render={<Link href="/dashboard" />} variant="ghost" size="sm">
+          <Button
+            render={<Link href="/dashboard" />}
+            nativeButton={false}
+            variant="ghost"
+            size="sm"
+          >
             Sign in
           </Button>
-          <Button render={<Link href="/create" />} size="sm">
+          <Button
+            render={<Link href="/create" />}
+            nativeButton={false}
+            size="sm"
+          >
             Build a preview
             <ArrowUpRight className="size-3.5" />
           </Button>
@@ -61,7 +70,11 @@ export function SiteHeader() {
                 </Link>
               ))}
               <Link href="/dashboard">Sign in</Link>
-              <Button render={<Link href="/create" />} className="mt-4">
+              <Button
+                render={<Link href="/create" />}
+                nativeButton={false}
+                className="mt-4"
+              >
                 Build a preview
               </Button>
             </nav>
