@@ -1,7 +1,13 @@
 import { loadEnvConfig } from "@next/env";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 loadEnvConfig(process.cwd());
+
+// `prisma generate` only needs a syntactically valid URL and does not connect.
+// Runtime access still fails closed in src/lib/db.ts when DATABASE_URL is absent.
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  "postgresql://build:build@prisma-generate.invalid:5432/restofront";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -9,6 +15,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: databaseUrl,
   },
 });

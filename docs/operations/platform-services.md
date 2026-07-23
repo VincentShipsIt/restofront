@@ -19,9 +19,24 @@ encrypted SSM parameters on the EC2 host.
 
 After configuring production, redeploy it and request `/api/health/ready`. The
 route returns `200` only when all three runtime services are reachable.
-It returns `503` with variable names and remediation guidance when configuration
-is missing or a provider cannot be reached. It never returns connection URLs,
-tokens, or provider error bodies.
+When configuration is missing, it returns `503` with the missing variable names
+and remediation guidance. Provider failures return a generic unreachable
+response without variable names or provider details. The route never returns
+connection URLs, tokens, or provider error bodies.
+
+Set a distinct `HEALTHCHECK_TOKEN` with at least 32 random bytes in each
+environment. Readiness callers must send it as a bearer token:
+
+```bash
+curl --fail-with-body \
+  --header "Authorization: Bearer $HEALTHCHECK_TOKEN" \
+  https://<deployment-host>/api/health/ready
+```
+
+The route fails closed when the token is missing or invalid. Each application
+instance also coalesces concurrent probes and caches the aggregate result for
+five seconds to avoid amplifying health checks into the database, Redis, and
+S3 providers.
 
 ## Database release procedure
 
@@ -76,10 +91,13 @@ suspected exposure or an operator access change:
 
 ## Deployment
 
-GitHub Actions builds the Docker image without production secrets, uploads the
-immutable image archive to the private deployment bucket, and assumes the
-repository-scoped AWS OIDC role. The role may upload only Restofront artifacts
-and send only `AWS-RunShellScript` commands to the production instance.
+The manually dispatched GitHub Actions workflow builds the Docker image without
+production secrets, uploads the immutable image archive to the private
+deployment bucket, and assumes the repository-scoped AWS OIDC role. Merging to
+`main` never deploys automatically. An operator dispatches production only after
+the scoped IAM policy, SSM parameters, host bootstrap, and DNS prerequisites are
+reviewed and ready. The role may upload only Restofront artifacts and send only
+`AWS-RunShellScript` commands to the production instance.
 
 The host deployment script:
 

@@ -32,5 +32,6 @@ COPY --chown=bun:bun deploy/aws/container-entrypoint.sh ./deploy/aws/container-e
 USER bun
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=18 \
-  CMD wget -qO- http://127.0.0.1:3000/api/health/ready >/dev/null || exit 1
+  CMD wget --header="Authorization: Bearer ${HEALTHCHECK_TOKEN}" \
+    -qO- http://127.0.0.1:3000/api/health/ready >/dev/null || exit 1
 ENTRYPOINT ["/app/deploy/aws/container-entrypoint.sh"]
