@@ -22,6 +22,20 @@ It returns `503` with variable names and remediation guidance when configuration
 is missing or a provider cannot be reached. It never returns connection URLs,
 tokens, or provider error bodies.
 
+Set a distinct `HEALTHCHECK_TOKEN` with at least 32 random bytes in each
+environment. Readiness callers must send it as a bearer token:
+
+```bash
+curl --fail-with-body \
+  --header "Authorization: Bearer $HEALTHCHECK_TOKEN" \
+  https://<deployment-host>/api/health/ready
+```
+
+The route fails closed when the token is missing or invalid. Each application
+instance also coalesces concurrent probes and caches the aggregate result for
+five seconds to avoid amplifying health checks into the database, Redis, and
+Blob providers.
+
 ## Database release procedure
 
 Committed migrations in `prisma/migrations` are the only production schema

@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { Redis } from "@upstash/redis";
 import { list } from "@vercel/blob";
 import { getDb } from "@/lib/db";
@@ -27,6 +28,7 @@ export type PlatformReadiness = {
 };
 
 const probeTimeoutMs = 5_000;
+const readinessCacheTtlMs = 5_000;
 
 function deploymentEnvironment(
   env: Environment,
@@ -131,7 +133,7 @@ function configurationError(
 function createDefaultProbes(env: Environment): ReadinessProbes {
   return {
     database: async () => {
-      await getDb().$queryRawUnsafe("SELECT 1");
+      await getDb().$queryRaw`SELECT 1`;
     },
     rateLimit: async () => {
       const redis = new Redis({
@@ -200,5 +202,59 @@ export async function checkPlatformReadiness(
       : "not_ready",
     environment,
     services,
+  };
+}
+
+export function isPlatformReadinessAuthorized(
+  request: Request,
+  expectedToken = process.env.HEALTHCHECK_TOKEN,
+): boolean {
+  if (!expectedToken) return false;
+
+  const authorization = request.headers.get("authorization");
+  const suppliedToken = authorization?.match(/^Bearer ([^\s]+)$/i)?.[1];
+  if (!suppliedToken) return false;
+
+  const suppliedHash = createHash("sha256").update(suppliedToken).digest();
+  const expectedHash = createHash("sha256").update(expectedToken).digest();
+  return timingSafeEqual(suppliedHash, expectedHash);
+}
+
+type ReadinessCacheOptions = {
+  check?: () => Promise<PlatformReadiness>;
+  now?: () => number;
+  ttlMs?: number;
+};
+
+export function createCachedPlatformReadiness({
+  check = checkPlatformReadiness,
+  now = Date.now,
+  ttlMs = readinessCacheTtlMs,
+}: ReadinessCacheOptions = {}): () => Promise<PlatformReadiness> {
+  let cached:
+    | {
+        expiresAt: number;
+        readiness: PlatformReadiness;
+      }
+    | undefined;
+  let inFlight: Promise<PlatformReadiness> | undefined;
+
+  return async () => {
+    if (cached && cached.expiresAt > now()) return cached.readiness;
+    if (inFlight) return inFlight;
+
+    inFlight = check()
+      .then((readiness) => {
+        cached = {
+          expiresAt: now() + ttlMs,
+          readiness,
+        };
+        return readiness;
+      })
+      .finally(() => {
+        inFlight = undefined;
+      });
+
+    return inFlight;
   };
 }
