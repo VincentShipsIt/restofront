@@ -1,0 +1,20 @@
+# BEGIN RESTOFRONT
+api.restofront.com {
+	@workflowHandlers path /.well-known/workflow/v1/flow* /.well-known/workflow/v1/step*
+	respond @workflowHandlers 404
+	reverse_proxy restofront:3000
+}
+
+domains.restofront.com {
+	respond 404
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+	@workflowHandlers path /.well-known/workflow/v1/flow* /.well-known/workflow/v1/step*
+	respond @workflowHandlers 404
+	reverse_proxy restofront:3000
+}
+# END RESTOFRONT

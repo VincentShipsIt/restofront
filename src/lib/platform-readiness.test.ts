@@ -8,18 +8,19 @@ import {
 } from "@/lib/platform-readiness";
 
 const configuredEnvironment = {
-  VERCEL_ENV: "preview",
+  NODE_ENV: "production",
   DATABASE_URL: "postgresql://preview.example.test/restofront",
-  UPSTASH_REDIS_REST_URL: "https://redis.example.test",
-  UPSTASH_REDIS_REST_TOKEN: "redis-secret",
-  BLOB_READ_WRITE_TOKEN: "blob-secret",
+  REDIS_URL: "redis://redis.example.test:6379",
+  S3_BUCKET: "restofront-images",
+  S3_PUBLIC_BASE_URL: "https://assets.restofront.example.test",
+  AWS_REGION: "us-west-1",
 };
 
 function probes(): ReadinessProbes {
   return {
     database: mock(async () => {}),
     rateLimit: mock(async () => {}),
-    blob: mock(async () => {}),
+    storage: mock(async () => {}),
   };
 }
 
@@ -27,7 +28,7 @@ describe("checkPlatformReadiness", () => {
   it("reports every missing service without running probes", async () => {
     const serviceProbes = probes();
     const result = await checkPlatformReadiness(
-      { VERCEL_ENV: "production" },
+      { NODE_ENV: "production" },
       serviceProbes,
     );
 
@@ -42,18 +43,18 @@ describe("checkPlatformReadiness", () => {
       {
         service: "rateLimit",
         status: "misconfigured",
-        message:
-          "Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN for this deployment environment.",
+        message: "Set REDIS_URL for this deployment environment.",
       },
       {
-        service: "blob",
+        service: "storage",
         status: "misconfigured",
-        message: "Set BLOB_READ_WRITE_TOKEN for this deployment environment.",
+        message:
+          "Set S3_BUCKET, S3_PUBLIC_BASE_URL, and AWS_REGION for this deployment environment.",
       },
     ]);
     expect(serviceProbes.database).not.toHaveBeenCalled();
     expect(serviceProbes.rateLimit).not.toHaveBeenCalled();
-    expect(serviceProbes.blob).not.toHaveBeenCalled();
+    expect(serviceProbes.storage).not.toHaveBeenCalled();
   });
 
   it("reports configured and reachable services as ready", async () => {
@@ -69,7 +70,7 @@ describe("checkPlatformReadiness", () => {
     );
     expect(serviceProbes.database).toHaveBeenCalledTimes(1);
     expect(serviceProbes.rateLimit).toHaveBeenCalledTimes(1);
-    expect(serviceProbes.blob).toHaveBeenCalledTimes(1);
+    expect(serviceProbes.storage).toHaveBeenCalledTimes(1);
   });
 
   it("fails deployed environments that point at a local database", async () => {
@@ -94,7 +95,7 @@ describe("checkPlatformReadiness", () => {
   it("does not expose provider errors or credential values", async () => {
     const serviceProbes = probes();
     serviceProbes.rateLimit = mock(async () => {
-      throw new Error(`request failed with ${configuredEnvironment.UPSTASH_REDIS_REST_TOKEN}`);
+      throw new Error(`request failed with ${configuredEnvironment.REDIS_URL}`);
     });
 
     const result = await checkPlatformReadiness(
@@ -111,34 +112,34 @@ describe("checkPlatformReadiness", () => {
         "Configured but unreachable. Check provider status and credentials.",
     });
     expect(serialized).not.toContain(
-      configuredEnvironment.UPSTASH_REDIS_REST_TOKEN,
+      configuredEnvironment.REDIS_URL,
     );
-    expect(serialized).not.toContain(configuredEnvironment.BLOB_READ_WRITE_TOKEN);
+    expect(serialized).not.toContain(configuredEnvironment.S3_BUCKET);
     expect(serialized).not.toContain(configuredEnvironment.DATABASE_URL);
   });
 
-  it("reports an unavailable blob store without exposing provider errors", async () => {
+  it("reports unavailable storage without exposing provider errors", async () => {
     const serviceProbes = probes();
-    serviceProbes.blob = mock(async () => {
-      throw new Error(
-        `blob failed with ${configuredEnvironment.BLOB_READ_WRITE_TOKEN}`,
-      );
+    serviceProbes.storage = mock(async () => {
+      throw new Error(`S3 failed for ${configuredEnvironment.S3_BUCKET}`);
     });
 
     const result = await checkPlatformReadiness(
       configuredEnvironment,
       serviceProbes,
     );
-    const blob = result.services.find((service) => service.service === "blob");
+    const storage = result.services.find(
+      (service) => service.service === "storage",
+    );
 
-    expect(blob).toEqual({
-      service: "blob",
+    expect(storage).toEqual({
+      service: "storage",
       status: "unavailable",
       message:
         "Configured but unreachable. Check provider status and credentials.",
     });
     expect(JSON.stringify(result)).not.toContain(
-      configuredEnvironment.BLOB_READ_WRITE_TOKEN,
+      configuredEnvironment.S3_BUCKET,
     );
   });
 });

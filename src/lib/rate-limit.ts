@@ -1,26 +1,19 @@
-import { createHash } from "node:crypto";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import { createHash, randomUUID } from "node:crypto";
+import { getRedisClient } from "@/lib/redis";
 
-let importRatelimit: Ratelimit | undefined;
-
-function getImportRatelimit(): Ratelimit | null {
-  if (importRatelimit) return importRatelimit;
-  if (
-    !process.env.UPSTASH_REDIS_REST_URL ||
-    !process.env.UPSTASH_REDIS_REST_TOKEN
-  ) {
-    return null;
-  }
-
-  importRatelimit = new Ratelimit({
-    redis: Redis.fromEnv(),
-    limiter: Ratelimit.slidingWindow(5, "1 h"),
-    analytics: true,
-    prefix: "restofront:preview",
-  });
-  return importRatelimit;
-}
+const limit = 5;
+const windowMs = 60 * 60_000;
+const slidingWindowScript = `
+redis.call("ZREMRANGEBYSCORE", KEYS[1], 0, ARGV[1] - ARGV[2])
+local count = redis.call("ZCARD", KEYS[1])
+if count >= tonumber(ARGV[3]) then
+  local oldest = redis.call("ZRANGE", KEYS[1], 0, 0, "WITHSCORES")
+  return {0, 0, tonumber(oldest[2]) + tonumber(ARGV[2])}
+end
+redis.call("ZADD", KEYS[1], ARGV[1], ARGV[4])
+redis.call("PEXPIRE", KEYS[1], ARGV[2])
+return {1, tonumber(ARGV[3]) - count - 1, tonumber(ARGV[1]) + tonumber(ARGV[2])}
+`;
 
 export async function limitPublicPreview(request: Request): Promise<{
   success: boolean;
@@ -28,8 +21,7 @@ export async function limitPublicPreview(request: Request): Promise<{
   reset: number;
   reason?: "limited" | "unavailable";
 }> {
-  const limiter = getImportRatelimit();
-  if (!limiter) {
+  if (!process.env.REDIS_URL) {
     if (process.env.NODE_ENV === "production") {
       return {
         success: false,
@@ -38,7 +30,7 @@ export async function limitPublicPreview(request: Request): Promise<{
         reason: "unavailable",
       };
     }
-    return { success: true, remaining: 5, reset: Date.now() + 60 * 60_000 };
+    return { success: true, remaining: limit, reset: Date.now() + windowMs };
   }
 
   const forwardedFor = request.headers.get("x-forwarded-for");
@@ -48,12 +40,33 @@ export async function limitPublicPreview(request: Request): Promise<{
     "unknown";
   const identifier = createHash("sha256").update(address).digest("hex");
   try {
-    const result = await limiter.limit(identifier);
+    const now = Date.now();
+    const redis = await getRedisClient();
+    const result = await redis.eval(slidingWindowScript, {
+      keys: [`restofront:preview:${identifier}`],
+      arguments: [
+        String(now),
+        String(windowMs),
+        String(limit),
+        `${now}:${randomUUID()}`,
+      ],
+    });
+    if (!Array.isArray(result) || result.length !== 3) {
+      throw new Error("Redis returned an invalid rate-limit result");
+    }
+    const [success, remaining, reset] = result.map(Number);
+    if (
+      !Number.isFinite(success) ||
+      !Number.isFinite(remaining) ||
+      !Number.isFinite(reset)
+    ) {
+      throw new Error("Redis returned an invalid rate-limit result");
+    }
     return {
-      success: result.success,
-      remaining: result.remaining,
-      reset: result.reset,
-      reason: result.success ? undefined : "limited",
+      success: success === 1,
+      remaining,
+      reset,
+      reason: success === 1 ? undefined : "limited",
     };
   } catch {
     return {

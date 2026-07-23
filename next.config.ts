@@ -1,7 +1,24 @@
 import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 
+const apiOrigin = process.env.RESTOFRONT_API_ORIGIN?.replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
+  output: "standalone",
+  async rewrites() {
+    if (!apiOrigin) return [];
+
+    return {
+      beforeFiles: [
+        {
+          source: "/api/:path*",
+          destination: `${apiOrigin}/api/:path*`,
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
   images: {
     remotePatterns: [
       {

@@ -1,4 +1,23 @@
-import { put } from "@vercel/blob";
+import { randomUUID } from "node:crypto";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+
+type Environment = Record<string, string | undefined>;
+
+export function getImageStorageConfig(env: Environment = process.env) {
+  const bucket = env.S3_BUCKET;
+  const publicBaseUrl = env.S3_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  const region = env.AWS_REGION;
+  if (!bucket || !publicBaseUrl || !region) {
+    throw new Error(
+      "S3_BUCKET, S3_PUBLIC_BASE_URL, and AWS_REGION must be configured",
+    );
+  }
+  return { bucket, publicBaseUrl, region };
+}
+
+export function imageStorageIsConfigured(env: Environment = process.env) {
+  return Boolean(env.S3_BUCKET && env.S3_PUBLIC_BASE_URL && env.AWS_REGION);
+}
 
 export async function storeRestaurantImage(input: {
   restaurantSlug: string;
@@ -6,20 +25,19 @@ export async function storeRestaurantImage(input: {
   mediaType: string;
   purpose: "hero" | "menu" | "original-hero";
 }): Promise<string> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error("Vercel Blob is not configured");
-  }
-
+  const { bucket, publicBaseUrl, region } = getImageStorageConfig();
   const extension =
     input.mediaType.split("/")[1]?.replace("jpeg", "jpg") ?? "png";
-  const blob = await put(
-    `restaurants/${input.restaurantSlug}/${input.purpose}.${extension}`,
-    Buffer.from(input.data),
-    {
-      access: "public",
-      addRandomSuffix: true,
-      contentType: input.mediaType,
-    },
+  const key = `restaurants/${input.restaurantSlug}/${input.purpose}-${randomUUID()}.${extension}`;
+  const s3 = new S3Client({ region });
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: input.data,
+      ContentType: input.mediaType,
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
   );
-  return blob.url;
+  return `${publicBaseUrl}/${key}`;
 }

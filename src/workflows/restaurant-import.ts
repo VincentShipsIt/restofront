@@ -10,7 +10,10 @@ import {
   type ExtractedRestaurant,
 } from "@/lib/importer";
 import type { RestaurantDraft } from "@/lib/restaurant";
-import { storeRestaurantImage } from "@/lib/storage/images";
+import {
+  imageStorageIsConfigured,
+  storeRestaurantImage,
+} from "@/lib/storage/images";
 
 export type RestaurantImportEvent =
   | {
@@ -230,7 +233,7 @@ async function enhanceDraftImages(
   if (
     !draft.autoEnhanceImages ||
     !draft.heroImageUrl?.startsWith("https://") ||
-    !process.env.BLOB_READ_WRITE_TOKEN ||
+    !imageStorageIsConfigured() ||
     (!process.env.VERCEL_OIDC_TOKEN && !process.env.AI_GATEWAY_API_KEY)
   ) {
     console.log(`[restaurant-import:enhance] SKIP slug=${draft.slug}`);

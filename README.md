@@ -10,9 +10,9 @@ Restofront turns an existing restaurant website—or just a restaurant name—in
 4. Derive the colour palette from the source branding and select a cuisine-aware layout.
 5. Detect the source language, preserve it as canonical, and generate a complete English translation during the same structured AI pass.
 6. Preserve first-party photography and optionally enhance exposure, colour, crop, noise, and clarity without changing the food or venue.
-7. Save a private preview through a durable Vercel Workflow.
+7. Save a private preview through a durable PostgreSQL-backed Workflow.
 8. Claim the restaurant through Stripe Checkout; the completed checkout creates the prefilled owner account.
-9. Attach the restaurant domain to the Vercel project and show the exact DNS records.
+9. Authorize the restaurant domain for on-demand TLS and show the exact DNS records.
 10. Monitor and maintain the menu, imagery, and external links from the dashboard.
 
 ## Restaurant templates
@@ -60,12 +60,12 @@ The canonical site is available at `/preview/[slug]`; translations use
 - Prisma 7 with PostgreSQL and the `pg` driver adapter
 - Vercel AI SDK 6 with OpenRouter Auto for structured text generation
 - Vercel AI Gateway for optional source-photo enhancement
-- Vercel Workflow DevKit
-- Vercel Blob for persistent enhanced derivatives
-- Upstash Redis for public preview rate limits
+- Workflow DevKit with its self-hosted PostgreSQL World
+- Amazon S3 and CloudFront for persistent enhanced derivatives
+- Redis for public preview rate limits
 - Stripe subscriptions
 - Resend passwordless sign-in links
-- Vercel Projects API for customer domains
+- Caddy on-demand TLS for verified customer domains
 
 ## Local setup
 
@@ -89,8 +89,8 @@ bun run db:migrate:deploy
 Preview and production service isolation, readiness checks, backups, restores,
 and credential rotation are documented in
 [`docs/operations/platform-services.md`](docs/operations/platform-services.md).
-The bearer-authenticated `/api/health/ready` route verifies PostgreSQL, Upstash
-Redis, and Vercel Blob without returning secret values. Each application
+The bearer-authenticated `/api/health/ready` route verifies PostgreSQL, Redis,
+and Amazon S3 without returning secret values. Each application
 instance coalesces concurrent checks and caches their aggregate result for five
 seconds.
 
@@ -120,23 +120,27 @@ to normalize recovered content into a structured restaurant draft:
 OpenRouter Auto selects a compatible language model per import. Structured output
 is schema validated before it is persisted.
 
-For optional image enhancement, link the Vercel project and enable AI Gateway.
-Vercel provisions `VERCEL_OIDC_TOKEN` automatically in deployments.
+For optional image enhancement, configure AI Gateway.
 
 - `AI_TEXT_MODEL` defaults to `openai/gpt-5.4`
 - `AI_IMAGE_MODEL` defaults to `google/gemini-3.1-flash-image-preview`
+- `AI_GATEWAY_API_KEY`
 - `WORKFLOW_ENABLED=true`
+- `WORKFLOW_TARGET_WORLD=@workflow/world-postgres`
+- `WORKFLOW_POSTGRES_URL`
 
 ### Authentic image enhancement
 
-Create a Vercel Blob store linked to the project:
+Configure the private production S3 bucket and its CloudFront public origin:
 
-- `BLOB_READ_WRITE_TOKEN`
+- `AWS_REGION`
+- `S3_BUCKET`
+- `S3_PUBLIC_BASE_URL`
 
 Restofront never creates a dish photograph from menu text. Enhancement requires
 an existing HTTPS source image from the restaurant, an owner upload, or customer
 UGC with explicit reuse permission. The immutable original URL and its
-provenance are stored alongside the enhanced Blob derivative.
+provenance are stored alongside the enhanced S3 derivative.
 
 Allowed edits are exposure, white balance, highlight and shadow recovery,
 denoising, sharpness, resolution, straightening, subtle cropping, and removal of
@@ -147,10 +151,9 @@ automatic enhancement and must review the derivative before publishing.
 
 ### Preview abuse protection
 
-Create an Upstash Redis database and link it to the project:
+Configure the isolated Redis service:
 
-- `UPSTASH_REDIS_REST_URL`
-- `UPSTASH_REDIS_REST_TOKEN`
+- `REDIS_URL`
 
 Public imports are limited to five preview generations per IP address per hour.
 Production fails closed when Redis is not configured, preventing an unbounded AI
@@ -166,7 +169,7 @@ generation endpoint.
 Configure the webhook endpoint as:
 
 ```text
-https://<app-domain>/api/webhooks/stripe
+https://api.restofront.com/api/webhooks/stripe
 ```
 
 ### Owner sign-in
@@ -177,11 +180,22 @@ https://<app-domain>/api/webhooks/stripe
 
 ### Customer domains
 
-- `VERCEL_TOKEN`
-- `VERCEL_PROJECT_ID`
-- `VERCEL_TEAM_ID` when the project belongs to a team
+- `PUBLIC_APP_IP`
+- `CUSTOM_DOMAIN_CNAME`
+- `PLATFORM_HOSTNAMES`
 
-The application first attaches the hostname to the project. It then shows Vercel's returned verification challenge or the general-purpose A/CNAME record. The customer changes DNS only after this step.
+The application records the hostname and returns the production A or CNAME
+target. After DNS resolves, the owner verifies it in the dashboard. Caddy issues
+TLS only when its authorization callback confirms that the domain is verified
+and belongs to a restaurant.
+
+### Production routing
+
+The frontend remains on Vercel at `restofront.com` and `www.restofront.com`.
+Set `RESTOFRONT_API_ORIGIN=https://api.restofront.com` in the Vercel production
+environment so same-origin `/api/*` requests are proxied to the API without
+changing browser URLs. Route `api.restofront.com` and customer restaurant
+domains through Caddy on the EC2 application host.
 
 ## Security boundaries
 
@@ -194,7 +208,7 @@ The application first attaches the hostname to the project. It then shows Vercel
 - Restaurant mutations require a session matching the restaurant slug.
 - Image enhancement and domain management require that same restaurant-scoped session.
 - Public preview generation is rate limited and fails closed in production.
-- Enhanced derivatives are persisted to Vercel Blob while authentic originals and provenance remain available.
+- Enhanced derivatives are persisted to private S3 storage and served through CloudFront while authentic originals and provenance remain available.
 - Arbitrary restaurant images load directly in the browser instead of through the Next.js image proxy.
 
 ## Useful routes

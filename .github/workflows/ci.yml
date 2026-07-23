@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches:
@@ -14,8 +15,9 @@ jobs:
       # Prisma Client generation validates that DATABASE_URL exists but does not
       # connect to this placeholder. Runtime readiness is checked separately.
       DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/restofront_ci
+      WORKFLOW_TARGET_WORLD: "@workflow/world-postgres"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: oven-sh/setup-bun@v2
@@ -25,3 +27,11 @@ jobs:
       - run: bun run test
       - run: bun run lint
       - run: bun run build
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    needs: verify
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/deploy-production.yml
