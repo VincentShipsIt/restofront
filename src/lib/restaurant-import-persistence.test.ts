@@ -5,7 +5,7 @@ import {
   normalizeImportSource,
   slugCollisionCandidate,
   storedImportSource,
-} from "@/lib/restaurant-import-persistence";
+} from "@/lib/restaurant-import";
 
 describe("restaurant import identity", () => {
   it("normalizes equivalent website sources to one key", () => {

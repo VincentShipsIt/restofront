@@ -9,8 +9,8 @@ import {
   type ExtractedRestaurant,
 } from "@/lib/importer";
 import type { RestaurantDraft } from "@/lib/restaurant";
+import { importFailureMessage } from "@/lib/restaurant-import";
 import {
-  importFailureMessage,
   persistRestaurantImport,
   recordImportFailure,
   updateImportJob,

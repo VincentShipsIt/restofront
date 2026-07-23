@@ -24,7 +24,7 @@ import {
   sampleRestaurant,
   type RestaurantDraft,
 } from "@/lib/restaurant";
-import type { ImportUrls } from "@/lib/restaurant-import-persistence";
+import type { ImportUrls } from "@/lib/restaurant-import";
 
 type Stage = {
   label: string;
