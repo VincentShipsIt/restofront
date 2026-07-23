@@ -42,7 +42,9 @@ docker run --rm \
   --volume "$temporary_caddyfile:/etc/caddy/Caddyfile:ro" \
   caddy:2 \
   caddy validate --config /etc/caddy/Caddyfile
-install -m 644 "$temporary_caddyfile" "$caddyfile"
+# Preserve the inode because the shared Caddy container bind-mounts this file.
+cat "$temporary_caddyfile" >"$caddyfile"
+chmod 644 "$caddyfile"
 
 docker exec shipshit-caddy caddy validate --config /etc/caddy/Caddyfile
 docker exec shipshit-caddy caddy reload --config /etc/caddy/Caddyfile
