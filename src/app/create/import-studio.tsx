@@ -14,6 +14,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { InstantRestaurantPreview } from "@/components/instant-restaurant-preview";
 import { RestaurantSite } from "@/components/restaurant-site";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,12 +43,16 @@ type ImportResponse =
   | { error: string };
 
 export function ImportStudio({ initialSource }: { initialSource: string }) {
+  const hasInitialSource = Boolean(initialSource.trim());
   const [source, setSource] = useState(initialSource);
-  const [progress, setProgress] = useState(0);
-  const [message, setMessage] = useState("Ready when you are");
+  const [previewSource, setPreviewSource] = useState(initialSource);
+  const [progress, setProgress] = useState(hasInitialSource ? 6 : 0);
+  const [message, setMessage] = useState(
+    hasInitialSource ? "Opening the restaurant" : "Ready when you are",
+  );
   const [draft, setDraft] = useState<RestaurantDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(hasInitialSource);
   const [device, setDevice] = useState<"mobile" | "desktop">("mobile");
   const startedSource = useRef<string | null>(null);
 
@@ -56,6 +61,7 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
     if (!cleanSource) return;
 
     startedSource.current = cleanSource;
+    setPreviewSource(cleanSource);
     setLoading(true);
     setDraft(null);
     setError(null);
@@ -84,30 +90,33 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
         `/api/workflows/${encodeURIComponent(result.runId)}/events`,
       );
       events.onmessage = (event) => {
+        let update:
+          | {
+              type: "progress";
+              progress: number;
+              message: string;
+            }
+          | { type: "complete"; draft: RestaurantDraft }
+          | { type: "failed"; message: string };
         try {
-          const update = JSON.parse(event.data) as
-            | {
-                type: "progress";
-                progress: number;
-                message: string;
-              }
-            | { type: "complete"; draft: RestaurantDraft }
-            | { type: "failed"; message: string };
-          if (update.type === "progress") {
-            setProgress(update.progress);
-            setMessage(update.message);
-          }
-          if (update.type === "complete") {
-            events.close();
-            complete(update.draft);
-          }
-          if (update.type === "failed") {
-            events.close();
-            throw new Error(update.message);
-          }
+          update = JSON.parse(event.data) as typeof update;
         } catch {
           events.close();
           setError("The workflow returned an unreadable update");
+          setLoading(false);
+          return;
+        }
+        if (update.type === "progress") {
+          setProgress(update.progress);
+          setMessage(update.message);
+        }
+        if (update.type === "complete") {
+          events.close();
+          complete(update.draft);
+        }
+        if (update.type === "failed") {
+          events.close();
+          setError(update.message);
           setLoading(false);
         }
       };
@@ -154,6 +163,7 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
         <div className="flex items-center gap-4">
           <Button
             render={<Link href="/" aria-label="Back to Restofront" />}
+            nativeButton={false}
             variant="ghost"
             size="icon-sm"
           >
@@ -190,11 +200,14 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
             New restaurant
           </p>
           <h1 className="font-display mt-3 text-4xl leading-none tracking-[-0.04em]">
-            Build the first version.
+            {previewSource
+              ? "Your first look is ready."
+              : "Build the first version."}
           </h1>
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            Paste a website or restaurant name. The preview stays private until
-            it is claimed and paid.
+            {previewSource
+              ? "The shape is already here. We are recovering the real menu, imagery and existing links now."
+              : "Paste a website or restaurant name. The preview stays private until it is claimed and paid."}
           </p>
 
           <form
@@ -218,7 +231,7 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
               {loading ? (
                 <>
                   <LoaderCircle className="animate-spin" />
-                  Building preview
+                  Finishing the details
                 </>
               ) : (
                 <>
@@ -310,6 +323,7 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
               </p>
               <Button
                 render={<Link href={`/claim/${draft.slug}`} />}
+                nativeButton={false}
                 className="mt-4 w-full"
               >
                 Claim {draft.name}
@@ -320,23 +334,18 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
         </aside>
 
         <section className="relative overflow-hidden p-4 sm:p-7 lg:p-10">
-          {!draft ? (
+          {!draft && !previewSource ? (
             <div className="grid min-h-[720px] place-items-center rounded-[2rem] border border-dashed border-foreground/15 bg-background/40">
               <div className="max-w-sm px-6 text-center">
                 <span className="mx-auto grid size-12 place-items-center rounded-full border bg-background">
-                  {loading ? (
-                    <LoaderCircle className="size-5 animate-spin text-primary" />
-                  ) : (
-                    <Smartphone className="size-5 text-muted-foreground" />
-                  )}
+                  <Smartphone className="size-5 text-muted-foreground" />
                 </span>
                 <h2 className="font-display mt-5 text-3xl tracking-[-0.03em]">
-                  {loading ? "The preview is taking shape" : "Preview appears here"}
+                  Preview appears here
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                  {loading
-                    ? message
-                    : "Start with a website or restaurant name. No account is needed to see the result."}
+                  Start with a website or restaurant name. No account is needed
+                  to see the result.
                 </p>
               </div>
             </div>
@@ -355,7 +364,16 @@ export function ImportStudio({ initialSource }: { initialSource: string }) {
                     : "max-h-[790px] rounded-[1.15rem]"
                 }`}
               >
-                <RestaurantSite draft={draft} embedded />
+                {draft ? (
+                  <RestaurantSite draft={draft} embedded />
+                ) : (
+                  <InstantRestaurantPreview
+                    source={previewSource}
+                    message={message}
+                    progress={progress}
+                    status={error ? "error" : "loading"}
+                  />
+                )}
               </div>
             </div>
           )}

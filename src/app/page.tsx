@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
-  BadgeCheck,
   CalendarCheck2,
   Check,
   Globe2,
@@ -13,12 +12,11 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { HomepageTransformation } from "@/components/homepage-transformation";
 import { ImportForm } from "@/components/import-form";
-import { RestaurantSite } from "@/components/restaurant-site";
 import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { sampleRestaurant } from "@/lib/restaurant";
 
 const steps = [
   {
@@ -67,14 +65,14 @@ export default function Home() {
       <SiteHeader />
       <main>
         <section className="paper-grid overflow-hidden border-b">
-          <div className="mx-auto grid max-w-7xl gap-12 px-5 pb-20 pt-16 lg:grid-cols-[0.88fr_1.12fr] lg:px-8 lg:pb-28 lg:pt-24">
+          <div className="mx-auto grid max-w-7xl gap-10 px-5 pb-16 pt-16 lg:grid-cols-[0.92fr_1.08fr] lg:items-center lg:px-8 lg:pb-24 lg:pt-20">
             <div className="relative z-10 self-center">
               <Badge
                 variant="secondary"
                 className="mb-6 rounded-full border border-primary/15 bg-primary/8 px-3 py-1 text-primary"
               >
                 <Sparkles className="size-3" />
-                Website, menu and imagery—already done
+                Your old site in. A finished one out.
               </Badge>
               <h1 className="font-display text-balance max-w-2xl text-[clamp(4.2rem,8vw,7.6rem)] leading-[0.83] tracking-[-0.055em]">
                 Your front door, always current.
@@ -99,39 +97,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="relative min-h-[680px] lg:min-h-[760px]">
-              <div className="absolute inset-x-0 top-6 mx-auto w-[92%] rotate-[2deg] rounded-[2rem] border bg-[#1c241f] p-3 shadow-2xl lg:right-[-9%] lg:w-[92%]">
-                <div className="mb-3 flex items-center gap-2 px-2 text-white/50">
-                  <span className="size-2 rounded-full bg-[#f16f55]" />
-                  <span className="size-2 rounded-full bg-[#f0c45c]" />
-                  <span className="size-2 rounded-full bg-[#75be72]" />
-                  <div className="ml-3 rounded-full bg-white/10 px-4 py-1 text-[10px]">
-                    preview.restofront.com/osteria-luna
-                  </div>
-                </div>
-                <div className="h-[650px] overflow-hidden rounded-[1.35rem] bg-white lg:h-[710px]">
-                  <div className="origin-top scale-[0.72]">
-                    <div className="w-[138.89%]">
-                      <RestaurantSite draft={sampleRestaurant} embedded />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute bottom-5 left-[-2%] z-20 max-w-[245px] -rotate-2 rounded-2xl border bg-card p-4 shadow-xl lg:bottom-10">
-                <div className="flex items-center gap-2 text-xs font-semibold">
-                  <BadgeCheck className="size-4 text-primary" />
-                  Existing systems preserved
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <span className="rounded-md bg-muted px-2 py-1 text-[10px]">
-                    SevenRooms
-                  </span>
-                  <span className="rounded-md bg-muted px-2 py-1 text-[10px]">
-                    Order online
-                  </span>
-                </div>
-              </div>
-            </div>
+            <HomepageTransformation />
           </div>
         </section>
 
@@ -282,6 +248,7 @@ export default function Home() {
               </ul>
               <Button
                 render={<Link href="/create" />}
+                nativeButton={false}
                 variant="outline"
                 className="mt-8 w-full"
               >
@@ -316,6 +283,7 @@ export default function Home() {
               </ul>
               <Button
                 render={<Link href="/create" />}
+                nativeButton={false}
                 variant="secondary"
                 className="mt-8 w-full bg-white text-primary hover:bg-white/90"
               >

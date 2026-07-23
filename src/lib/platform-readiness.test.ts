@@ -1,6 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 import {
   checkPlatformReadiness,
+  createCachedPlatformReadiness,
+  isPlatformReadinessAuthorized,
+  type PlatformReadiness,
   type ReadinessProbes,
 } from "@/lib/platform-readiness";
 
@@ -55,15 +58,19 @@ describe("checkPlatformReadiness", () => {
   });
 
   it("reports configured and reachable services as ready", async () => {
+    const serviceProbes = probes();
     const result = await checkPlatformReadiness(
       configuredEnvironment,
-      probes(),
+      serviceProbes,
     );
 
     expect(result.status).toBe("ready");
     expect(result.services.every((service) => service.status === "ready")).toBe(
       true,
     );
+    expect(serviceProbes.database).toHaveBeenCalledTimes(1);
+    expect(serviceProbes.rateLimit).toHaveBeenCalledTimes(1);
+    expect(serviceProbes.storage).toHaveBeenCalledTimes(1);
   });
 
   it("fails deployed environments that point at a local database", async () => {
@@ -109,5 +116,92 @@ describe("checkPlatformReadiness", () => {
     );
     expect(serialized).not.toContain(configuredEnvironment.S3_BUCKET);
     expect(serialized).not.toContain(configuredEnvironment.DATABASE_URL);
+  });
+
+  it("reports unavailable storage without exposing provider errors", async () => {
+    const serviceProbes = probes();
+    serviceProbes.storage = mock(async () => {
+      throw new Error(`S3 failed for ${configuredEnvironment.S3_BUCKET}`);
+    });
+
+    const result = await checkPlatformReadiness(
+      configuredEnvironment,
+      serviceProbes,
+    );
+    const storage = result.services.find(
+      (service) => service.service === "storage",
+    );
+
+    expect(storage).toEqual({
+      service: "storage",
+      status: "unavailable",
+      message:
+        "Configured but unreachable. Check provider status and credentials.",
+    });
+    expect(JSON.stringify(result)).not.toContain(
+      configuredEnvironment.S3_BUCKET,
+    );
+  });
+});
+
+describe("platform readiness endpoint protection", () => {
+  it("fails closed without a configured token", () => {
+    const request = new Request("https://restofront.example/api/health/ready", {
+      headers: { Authorization: "Bearer supplied-token" },
+    });
+
+    expect(isPlatformReadinessAuthorized(request, "")).toBe(false);
+  });
+
+  it("accepts only the configured bearer token", () => {
+    const authorized = new Request(
+      "https://restofront.example/api/health/ready",
+      {
+        headers: { Authorization: "Bearer expected-token" },
+      },
+    );
+    const unauthorized = new Request(
+      "https://restofront.example/api/health/ready",
+      {
+        headers: { Authorization: "Bearer different-token" },
+      },
+    );
+
+    expect(isPlatformReadinessAuthorized(authorized, "expected-token")).toBe(
+      true,
+    );
+    expect(isPlatformReadinessAuthorized(unauthorized, "expected-token")).toBe(
+      false,
+    );
+  });
+
+  it("deduplicates concurrent probes and caches their result briefly", async () => {
+    let currentTime = 1_000;
+    const readiness: PlatformReadiness = {
+      status: "ready",
+      environment: "preview",
+      services: [],
+    };
+    const check = mock(async () => readiness);
+    const getReadiness = createCachedPlatformReadiness({
+      check,
+      now: () => currentTime,
+      ttlMs: 5_000,
+    });
+
+    const [first, second] = await Promise.all([
+      getReadiness(),
+      getReadiness(),
+    ]);
+    const cached = await getReadiness();
+
+    expect(first).toBe(readiness);
+    expect(second).toBe(readiness);
+    expect(cached).toBe(readiness);
+    expect(check).toHaveBeenCalledTimes(1);
+
+    currentTime += 5_001;
+    await getReadiness();
+    expect(check).toHaveBeenCalledTimes(2);
   });
 });
