@@ -9,6 +9,8 @@ const MAX_DISCOVERY_PAGES = 6;
 const MAX_SOURCE_TEXT_CHARS = 60_000;
 
 const sourceSchema = z.string().trim().min(2).max(500);
+const bareDomainPattern =
+  /^(?:www\.)?(?:[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?\.)+[a-z]{2,63}(?::\d{1,5})?(?:[/?#][^\s]*)?$/i;
 
 export type ExtractedLink = {
   label: string;
@@ -416,7 +418,9 @@ function extractContact(pageText: string): { address: string; phone: string } {
 
 export async function inspectSource(rawSource: string): Promise<ExtractedRestaurant> {
   const source = sourceSchema.parse(rawSource);
-  const looksLikeUrl = /^(https?:\/\/|www\.)/i.test(source);
+  const looksLikeUrl =
+    /^(?:https?:\/\/|www\.)/i.test(source) ||
+    bareDomainPattern.test(source);
 
   if (!looksLikeUrl) {
     return {

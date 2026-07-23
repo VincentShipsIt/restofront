@@ -41,6 +41,7 @@ export function HomepageTransformation() {
               fill
               sizes="(max-width: 640px) 48vw, 280px"
               className="object-cover opacity-55 saturate-50"
+              loading="eager"
             />
             <div className="absolute inset-0 bg-[#bbb4a7]/30" />
             <div className="absolute inset-x-4 bottom-4">

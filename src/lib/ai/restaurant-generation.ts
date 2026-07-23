@@ -51,31 +51,35 @@ function getTextModel() {
 
 function deterministicDraft(source: ExtractedRestaurant): RestaurantDraft {
   const name = source.name || source.source;
+  const description =
+    source.description ||
+    "A private first look created from the restaurant information currently available.";
   return restaurantDraftSchema.parse({
     ...sampleRestaurant,
     slug: slugify(name) || sampleRestaurant.slug,
     name,
-    description: source.description || sampleRestaurant.description,
-    address: source.address || sampleRestaurant.address,
-    phone: source.phone || sampleRestaurant.phone,
+    eyebrow: "Private restaurant preview",
+    description,
+    cuisine: "",
+    address: source.address,
+    phone: source.phone,
     sourceUrl: source.sourceUrl,
     heroImageUrl: source.heroImageUrl,
     heroOriginalImageUrl: source.heroImageUrl,
     heroImageProvenance: source.heroImageUrl ? "official" : null,
-    autoEnhanceImages: true,
+    showMenuImages: false,
+    autoEnhanceImages: false,
     defaultLocale: source.sourceLocale ?? "en",
     translations: [],
-    menuSections: sampleRestaurant.menuSections.map((section) => ({
-      ...section,
-      items: section.items.map((item) => ({
-        ...item,
-        imageUrl: null,
-        originalImageUrl: null,
-        imageProvenance: null,
-      })),
-    })),
-    integrations:
-      source.links.length > 0 ? source.links : sampleRestaurant.integrations,
+    menuSections: [
+      {
+        name: "Menu",
+        description:
+          "Menu details were not available for automatic structuring.",
+        items: [],
+      },
+    ],
+    integrations: source.links,
   });
 }
 
