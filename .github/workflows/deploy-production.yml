@@ -25,9 +25,9 @@ jobs:
       INSTANCE_ID: i-00e74422e719396c3
       ROLE_ARN: arn:aws:iam::948918267147:role/restofront-github-production-deploy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build production image
         run: docker build --tag "restofront:${GITHUB_SHA}" .
@@ -35,7 +35,7 @@ jobs:
       - name: Package production image
         run: docker save "restofront:${GITHUB_SHA}" | gzip -1 > restofront.tar.gz
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.ROLE_ARN }}
