@@ -13,7 +13,10 @@ function requestHostname(request: NextRequest) {
 
 function platformHostnames() {
   return new Set(
-    (process.env.PLATFORM_HOSTNAMES ?? "restofront.com,www.restofront.com")
+    (
+      process.env.PLATFORM_HOSTNAMES ??
+      "restofront.com,www.restofront.com,api.restofront.com,domains.restofront.com"
+    )
       .split(",")
       .map((hostname) => hostname.trim().toLowerCase())
       .filter(Boolean),

@@ -1,12 +1,8 @@
 # BEGIN RESTOFRONT
-restofront.com {
+api.restofront.com {
 	@workflowHandlers path /.well-known/workflow/v1/flow* /.well-known/workflow/v1/step*
 	respond @workflowHandlers 404
 	reverse_proxy restofront:3000
-}
-
-www.restofront.com {
-	redir https://restofront.com{uri} permanent
 }
 
 domains.restofront.com {

@@ -159,7 +159,7 @@ generation endpoint.
 Configure the webhook endpoint as:
 
 ```text
-https://<app-domain>/api/webhooks/stripe
+https://api.restofront.com/api/webhooks/stripe
 ```
 
 ### Owner sign-in
@@ -178,6 +178,14 @@ The application records the hostname and returns the production A or CNAME
 target. After DNS resolves, the owner verifies it in the dashboard. Caddy issues
 TLS only when its authorization callback confirms that the domain is verified
 and belongs to a restaurant.
+
+### Production routing
+
+The frontend remains on Vercel at `restofront.com` and `www.restofront.com`.
+Set `RESTOFRONT_API_ORIGIN=https://api.restofront.com` in the Vercel production
+environment so same-origin `/api/*` requests are proxied to the API without
+changing browser URLs. Route `api.restofront.com` and customer restaurant
+domains through Caddy on the EC2 application host.
 
 ## Security boundaries
 
