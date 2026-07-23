@@ -98,7 +98,7 @@ export function HomepageTransformation() {
                 fill
                 sizes="(max-width: 640px) 58vw, 350px"
                 className="object-cover"
-                preload
+                priority
               />
               <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(12,17,14,0.85),rgba(12,17,14,0.05)_72%)]" />
               <div className="absolute inset-x-0 top-0 flex items-center justify-between p-5 pt-7 text-white">
