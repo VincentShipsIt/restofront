@@ -18,9 +18,10 @@ scopes. Never copy the production database URL into Preview.
 
 After configuring each scope, redeploy it and request `/api/health/ready`. The
 route returns `200` only when all three services are configured and reachable.
-It returns `503` with variable names and remediation guidance when configuration
-is missing or a provider cannot be reached. It never returns connection URLs,
-tokens, or provider error bodies.
+When configuration is missing, it returns `503` with the missing variable names
+and remediation guidance. Provider failures return a generic unreachable
+response without variable names or provider details. The route never returns
+connection URLs, tokens, or provider error bodies.
 
 Set a distinct `HEALTHCHECK_TOKEN` with at least 32 random bytes in each
 environment. Readiness callers must send it as a bearer token:

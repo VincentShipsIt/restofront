@@ -89,14 +89,24 @@ bun run db:migrate:deploy
 Preview and production service isolation, readiness checks, backups, restores,
 and credential rotation are documented in
 [`docs/operations/platform-services.md`](docs/operations/platform-services.md).
-The uncached `/api/health/ready` route verifies PostgreSQL, Upstash Redis, and
-Vercel Blob without returning secret values.
+The bearer-authenticated `/api/health/ready` route verifies PostgreSQL, Upstash
+Redis, and Vercel Blob without returning secret values. Each application
+instance coalesces concurrent checks and caches their aggregate result for five
+seconds.
 
 ## Required production configuration
 
 ### Database
 
 - `DATABASE_URL`
+
+### Platform readiness
+
+- `HEALTHCHECK_TOKEN`
+
+Use distinct, randomly generated values with at least 32 bytes for Preview and
+Production. Readiness callers send the value as a bearer token; the endpoint
+fails closed when it is absent or invalid.
 
 ### AI generation
 
