@@ -47,14 +47,28 @@ export function RestaurantSite({
     )
     .slice(0, 4);
   const immersiveHero = template.heroLayout === "immersive";
+  const heroTitleClassName = cn(
+    "min-w-0 break-words",
+    template.titleClassName,
+    embedded
+      ? "text-[clamp(3rem,12vw,4.5rem)]"
+      : "text-[clamp(3.25rem,15vw,6rem)] md:text-8xl",
+  );
+  // Reserve the existing bottom-aligned copy depth while anchoring its top,
+  // so longer translations expand downward instead of moving the title.
+  const splitHeroPositionClassName = embedded
+    ? "lg:pt-20"
+    : "lg:pt-[max(3rem,calc(78svh-26.5rem))]";
 
   return (
     <article
       lang={locale}
       data-restaurant-template={template.id}
       className={cn(
-        "overflow-hidden font-sans",
-        embedded ? "min-h-[720px] rounded-[1.65rem]" : "min-h-screen",
+        "font-sans",
+        embedded
+          ? "min-h-[720px] overflow-hidden rounded-[1.65rem]"
+          : "min-h-screen",
       )}
       style={
         {
@@ -68,21 +82,26 @@ export function RestaurantSite({
     >
       <header
         className={cn(
-          "z-20 flex w-full items-center justify-between p-5 md:p-8",
+          "z-20 grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 p-4 sm:flex sm:justify-between sm:gap-4 sm:p-5 md:p-8",
           immersiveHero
             ? "absolute text-white"
             : "relative border-b border-current/10",
         )}
       >
-        <span className={cn("text-xl md:text-2xl", template.brandClassName)}>
+        <span
+          className={cn(
+            "min-w-0 break-words text-lg leading-tight sm:flex-1 sm:text-xl md:text-2xl",
+            template.brandClassName,
+          )}
+        >
           {draft.name}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="contents sm:flex sm:shrink-0 sm:items-center sm:gap-2">
           {localeBasePath && availableLocales.length > 1 ? (
             <nav
               aria-label={dictionary.language}
               className={cn(
-                "flex items-center rounded-full border p-1 text-[10px] font-bold uppercase tracking-[0.08em] backdrop-blur",
+                "col-start-2 row-start-1 flex items-center justify-self-end rounded-full border p-1 text-[11px] font-bold uppercase tracking-[0.08em] backdrop-blur",
                 immersiveHero
                   ? "border-white/35 bg-black/10"
                   : "border-current/20",
@@ -101,12 +120,12 @@ export function RestaurantSite({
                     availableLocale === locale ? "page" : undefined
                   }
                   className={cn(
-                    "rounded-full px-2 py-1 transition-colors",
+                    "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-2 py-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 sm:min-h-7 sm:min-w-7",
                     availableLocale === locale
                       ? immersiveHero
                         ? "bg-white text-black"
                         : "bg-[var(--restaurant-fg)] text-[var(--restaurant-bg)]"
-                      : "opacity-65 hover:opacity-100",
+                      : "opacity-75 hover:opacity-100",
                   )}
                 >
                   {availableLocale.split("-")[0]}
@@ -120,7 +139,7 @@ export function RestaurantSite({
               target="_blank"
               rel="noreferrer"
               className={cn(
-                "hidden border px-4 py-2 text-xs font-semibold backdrop-blur sm:inline-flex",
+                "hidden items-center whitespace-nowrap border px-4 py-2 text-xs font-semibold backdrop-blur sm:inline-flex",
                 template.id === "bold" ? "rounded-none" : "rounded-full",
                 immersiveHero
                   ? "border-white/40 bg-black/10"
@@ -136,7 +155,7 @@ export function RestaurantSite({
               target="_blank"
               rel="noreferrer"
               className={cn(
-                "px-4 py-2 text-xs font-bold text-white",
+                "col-span-2 row-start-2 inline-flex min-h-11 items-center justify-center px-4 py-2 text-center text-xs font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 sm:col-auto sm:row-auto sm:min-h-0 sm:whitespace-nowrap",
                 template.id === "bold" ? "rounded-none" : "rounded-full",
               )}
               style={{ background: "var(--restaurant-accent)" }}
@@ -154,7 +173,12 @@ export function RestaurantSite({
             embedded ? "min-h-[520px]" : "min-h-[78svh]",
           )}
         >
-          <div className="flex items-end p-6 md:p-12 lg:p-16">
+          <div
+            className={cn(
+              "flex items-start p-6 md:p-12 lg:pb-16",
+              splitHeroPositionClassName,
+            )}
+          >
             <div className="max-w-2xl">
               <p
                 className="mb-5 text-xs font-bold uppercase tracking-[0.2em]"
@@ -162,17 +186,10 @@ export function RestaurantSite({
               >
                 {draft.eyebrow}
               </p>
-              <h1
-                className={cn(
-                  template.titleClassName,
-                  embedded
-                    ? "text-5xl md:text-7xl"
-                    : "text-6xl md:text-8xl",
-                )}
-              >
+              <h1 className={heroTitleClassName}>
                 {draft.name}
               </h1>
-              <p className="mt-6 max-w-xl text-base leading-7 opacity-70 md:text-lg">
+              <p className="mt-6 max-w-xl text-base leading-7 opacity-75 md:text-lg">
                 {draft.description}
               </p>
             </div>
@@ -197,7 +214,7 @@ export function RestaurantSite({
               className="absolute inset-0"
             />
             <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(10,18,15,0.86),rgba(10,18,15,0.02)_70%)]" />
-            <HeroCopy draft={draft} embedded={embedded} template={template} />
+            <HeroCopy draft={draft} titleClassName={heroTitleClassName} />
           </div>
         </section>
       ) : (
@@ -213,7 +230,7 @@ export function RestaurantSite({
             className="absolute inset-0"
           />
           <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(10,12,11,0.88),rgba(10,12,11,0.04)_68%)]" />
-          <HeroCopy draft={draft} embedded={embedded} template={template} />
+          <HeroCopy draft={draft} titleClassName={heroTitleClassName} />
         </section>
       )}
 
@@ -227,7 +244,7 @@ export function RestaurantSite({
               >
                 {copy.featuredHeading}
               </p>
-              <h2 className="mt-3 text-3xl font-bold tracking-[-0.04em] md:text-5xl">
+              <h2 className="mt-3 break-words text-3xl font-bold tracking-[-0.04em] md:text-5xl">
                 {copy.featuredSubheading}
               </h2>
             </div>
@@ -268,7 +285,7 @@ export function RestaurantSite({
                       {formatPrice(item.price, item.currency, locale)}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm leading-5 opacity-60">
+                  <p className="mt-2 text-sm leading-5 opacity-75">
                     {item.description}
                   </p>
                 </div>
@@ -280,10 +297,10 @@ export function RestaurantSite({
 
       <section className="mx-auto grid max-w-7xl gap-12 px-6 py-16 md:px-10 md:py-24 lg:grid-cols-[0.68fr_1.32fr]">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-55">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] opacity-70">
             {copy.menuEyebrow}
           </p>
-          <h2 className="mt-3 max-w-md text-4xl font-bold leading-[0.96] tracking-[-0.045em] md:text-6xl">
+          <h2 className="mt-3 max-w-md break-words text-4xl font-bold leading-[0.96] tracking-[-0.045em] md:text-6xl">
             {copy.menuHeading}
           </h2>
           <div className="mt-8 flex flex-col gap-3 text-sm opacity-75">
@@ -338,7 +355,7 @@ export function RestaurantSite({
                   {section.name}
                 </h3>
                 {section.description ? (
-                  <p className="mt-1 text-sm opacity-58">
+                  <p className="mt-1 text-sm opacity-75">
                     {section.description}
                   </p>
                 ) : null}
@@ -347,25 +364,27 @@ export function RestaurantSite({
                 {section.items.map((item) => (
                   <div
                     key={item.name}
-                    className="grid grid-cols-[1fr_auto] gap-5"
+                    className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 sm:gap-5"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-medium">{item.name}</h4>
+                        <h4 className="min-w-0 break-words font-medium">
+                          {item.name}
+                        </h4>
                         {item.dietaryLabels.map((label) => (
                           <span
                             key={label}
-                            className="rounded-full border border-current/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] opacity-65"
+                            className="rounded-full border border-current/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] opacity-75"
                           >
                             {label}
                           </span>
                         ))}
                       </div>
-                      <p className="mt-1 max-w-xl text-sm leading-6 opacity-60">
+                      <p className="mt-1 max-w-xl text-sm leading-6 opacity-75">
                         {item.description}
                       </p>
                     </div>
-                    <span className="font-mono text-sm">
+                    <span className="whitespace-nowrap font-mono text-sm">
                       {formatPrice(item.price, item.currency, locale)}
                     </span>
                   </div>
@@ -376,7 +395,7 @@ export function RestaurantSite({
         </div>
       </section>
 
-      <footer className="flex flex-col gap-5 border-t border-current/15 px-6 py-8 text-sm opacity-70 sm:flex-row sm:items-center sm:justify-between md:px-10">
+      <footer className="flex flex-col gap-5 border-t border-current/15 px-6 py-8 text-sm opacity-75 sm:flex-row sm:items-center sm:justify-between md:px-10">
         <span>
           {draft.name} · {draft.address}
         </span>
@@ -415,22 +434,16 @@ function HeroImage({
 
 type HeroCopyProps = {
   draft: RestaurantDraft;
-  embedded: boolean;
-  template: ReturnType<typeof resolveRestaurantTemplate>;
+  titleClassName: string;
 };
 
-function HeroCopy({ draft, embedded, template }: HeroCopyProps) {
+function HeroCopy({ draft, titleClassName }: HeroCopyProps) {
   return (
     <div className="relative max-w-4xl p-6 text-white md:p-12">
       <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-white/75">
         {draft.eyebrow}
       </p>
-      <h1
-        className={cn(
-          template.titleClassName,
-          embedded ? "text-5xl md:text-7xl" : "text-6xl md:text-8xl",
-        )}
-      >
+      <h1 className={titleClassName}>
         {draft.name}
       </h1>
       <p className="mt-6 max-w-xl text-base leading-7 text-white/82 md:text-lg">
