@@ -4,6 +4,7 @@ import { z } from "zod";
 import { generateRestaurantDraft } from "@/lib/ai/restaurant-generation";
 import { inspectSource } from "@/lib/importer";
 import { limitPublicPreview } from "@/lib/rate-limit";
+import { importFailureMessage } from "@/lib/restaurant-import";
 import {
   createImportJob,
   ImportConflictError,
@@ -94,8 +95,7 @@ export async function POST(request: Request) {
         : error instanceof ImportConflictError
           ? 409
           : 400;
-    const message =
-      error instanceof Error ? error.message : "Unable to import this restaurant";
+    const message = importFailureMessage(error);
     return NextResponse.json({ error: message, importJobId }, { status });
   }
 }
