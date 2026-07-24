@@ -1,5 +1,4 @@
 import { getWritable } from "workflow";
-import { getDb } from "@/lib/db";
 import {
   enhanceRestaurantImage,
   generateRestaurantDraft,
@@ -10,6 +9,13 @@ import {
   type ExtractedRestaurant,
 } from "@/lib/importer";
 import type { RestaurantDraft } from "@/lib/restaurant";
+import { importFailureMessage } from "@/lib/restaurant-import";
+import {
+  persistRestaurantImport,
+  recordImportFailure,
+  updateImportJob,
+  type PersistedRestaurantImport,
+} from "@/lib/restaurant-import-persistence";
 import {
   imageStorageIsConfigured,
   storeRestaurantImage,
@@ -22,52 +28,72 @@ export type RestaurantImportEvent =
       progress: number;
       message: string;
     }
-  | { type: "complete"; draft: RestaurantDraft }
+  | {
+      type: "complete";
+      draft: RestaurantDraft;
+      importJobId: string;
+      urls: PersistedRestaurantImport["urls"];
+    }
   | { type: "failed"; message: string };
 
 export async function restaurantImportWorkflow(
   source: string,
+  importJobId: string,
 ): Promise<RestaurantDraft> {
   "use workflow";
 
-  console.log(`[restaurant-import] START source=${source}`);
-  await emit({
-    type: "progress",
-    stage: "crawl",
-    progress: 12,
-    message: "Reading the current website",
-  });
-  const extracted = await crawlRestaurant(source);
-  await emit({
-    type: "progress",
-    stage: "extract",
-    progress: 42,
-    message: "Recovering menu, contacts and existing links",
-  });
-  await emit({
-    type: "progress",
-    stage: "compose",
-    progress: 65,
-    message: "Composing the mobile-first preview",
-  });
-  const draft = await composeDraft(extracted);
-  const enhancedDraft = await enhanceDraftImages(draft);
-  await emit({
-    type: "progress",
-    stage: "compose",
-    progress: 88,
-    message: "Checking every photo, menu and integration",
-  });
-  await emit({
-    type: "progress",
-    stage: "persist",
-    progress: 95,
-    message: "Saving the private preview",
-  });
-  await persistDraft(enhancedDraft);
-  await emitComplete(enhancedDraft);
-  console.log(`[restaurant-import] DONE slug=${enhancedDraft.slug}`);
-  return enhancedDraft;
+  try {
+    console.log(`[restaurant-import] START job=${importJobId}`);
+    await setImportStage(importJobId, "CRAWLING");
+    await emit({
+      type: "progress",
+      stage: "crawl",
+      progress: 12,
+      message: "Reading the current website",
+    });
+    const extracted = await crawlRestaurant(source);
+    await setImportStage(importJobId, "EXTRACTING");
+    await emit({
+      type: "progress",
+      stage: "extract",
+      progress: 42,
+      message: "Recovering menu, contacts and existing links",
+    });
+    await setImportStage(importJobId, "GENERATING");
+    await emit({
+      type: "progress",
+      stage: "compose",
+      progress: 65,
+      message: "Composing the mobile-first preview",
+    });
+    const draft = await composeDraft(extracted);
+    const enhancedDraft = await enhanceDraftImages(draft);
+    await emit({
+      type: "progress",
+      stage: "compose",
+      progress: 88,
+      message: "Checking every photo, menu and integration",
+    });
+    await emit({
+      type: "progress",
+      stage: "persist",
+      progress: 95,
+      message: "Saving the private preview",
+    });
+    const persisted = await persistDraft(
+      enhancedDraft,
+      source,
+      importJobId,
+    );
+    await emitComplete(persisted);
+    console.log(`[restaurant-import] DONE slug=${persisted.draft.slug}`);
+    return persisted.draft;
+  } catch (error) {
+    const message = importFailureMessage(error);
+    await failImport(importJobId, message);
+    await emit({ type: "failed", message });
+    throw error;
+  }
 }
 
 async function emit(event: RestaurantImportEvent): Promise<void> {
@@ -102,127 +128,36 @@ async function composeDraft(
   return draft;
 }
 
-async function persistDraft(draft: RestaurantDraft): Promise<void> {
+async function setImportStage(
+  importJobId: string,
+  status: "CRAWLING" | "EXTRACTING" | "GENERATING",
+): Promise<void> {
+  "use step";
+  await updateImportJob(importJobId, { status });
+}
+
+async function persistDraft(
+  draft: RestaurantDraft,
+  source: string,
+  importJobId: string,
+): Promise<PersistedRestaurantImport> {
   "use step";
   console.log(`[restaurant-import:persist] START slug=${draft.slug}`);
-
-  if (!process.env.DATABASE_URL) {
-    console.log("[restaurant-import:persist] SKIP database-not-configured");
-    return;
-  }
-
-  const db = getDb();
-  await db.restaurant.upsert({
-    where: { slug: draft.slug },
-    update: {
-      name: draft.name,
-      description: draft.description,
-      cuisine: draft.cuisine,
-      address: draft.address,
-      phone: draft.phone,
-      sourceUrl: draft.sourceUrl,
-      heroImageUrl: draft.heroImageUrl,
-      heroOriginalImageUrl: draft.heroOriginalImageUrl,
-      heroImageProvenance: toDatabaseImageProvenance(
-        draft.heroImageProvenance,
-      ),
-      showMenuImages: draft.showMenuImages,
-      autoEnhanceImages: draft.autoEnhanceImages,
-      defaultLocale: draft.defaultLocale,
-      translations: draft.translations,
-      status: "PREVIEW_READY",
-      integrations: {
-        deleteMany: {},
-        create: draft.integrations.map((integration) => ({
-          type: integration.type.toUpperCase() as
-            | "BOOKING"
-            | "ORDERING"
-            | "DELIVERY"
-            | "SOCIAL",
-          label: integration.label,
-          provider: integration.provider,
-          url: integration.url,
-        })),
-      },
-      menuSections: {
-        deleteMany: {},
-        create: draft.menuSections.map((section, sectionIndex) => ({
-          name: section.name,
-          description: section.description,
-          position: sectionIndex,
-          items: {
-            create: section.items.map((item, itemIndex) => ({
-              name: item.name,
-              description: item.description,
-              price: item.price,
-              currency: item.currency,
-              dietaryLabels: item.dietaryLabels,
-              imageUrl: item.imageUrl,
-              originalImageUrl: item.originalImageUrl,
-              imageProvenance: toDatabaseImageProvenance(
-                item.imageProvenance,
-              ),
-              position: itemIndex,
-            })),
-          },
-        })),
-      },
-    },
-    create: {
-      slug: draft.slug,
-      name: draft.name,
-      description: draft.description,
-      cuisine: draft.cuisine,
-      address: draft.address,
-      phone: draft.phone,
-      sourceUrl: draft.sourceUrl,
-      heroImageUrl: draft.heroImageUrl,
-      heroOriginalImageUrl: draft.heroOriginalImageUrl,
-      heroImageProvenance: toDatabaseImageProvenance(
-        draft.heroImageProvenance,
-      ),
-      showMenuImages: draft.showMenuImages,
-      autoEnhanceImages: draft.autoEnhanceImages,
-      defaultLocale: draft.defaultLocale,
-      translations: draft.translations,
-      status: "PREVIEW_READY",
-      integrations: {
-        create: draft.integrations.map((integration) => ({
-          type: integration.type.toUpperCase() as
-            | "BOOKING"
-            | "ORDERING"
-            | "DELIVERY"
-            | "SOCIAL",
-          label: integration.label,
-          provider: integration.provider,
-          url: integration.url,
-        })),
-      },
-      menuSections: {
-        create: draft.menuSections.map((section, sectionIndex) => ({
-          name: section.name,
-          description: section.description,
-          position: sectionIndex,
-          items: {
-            create: section.items.map((item, itemIndex) => ({
-              name: item.name,
-              description: item.description,
-              price: item.price,
-              currency: item.currency,
-              dietaryLabels: item.dietaryLabels,
-              imageUrl: item.imageUrl,
-              originalImageUrl: item.originalImageUrl,
-              imageProvenance: toDatabaseImageProvenance(
-                item.imageProvenance,
-              ),
-              position: itemIndex,
-            })),
-          },
-        })),
-      },
-    },
+  const result = await persistRestaurantImport({
+    draft,
+    source,
+    importJobId,
   });
-  console.log(`[restaurant-import:persist] DONE slug=${draft.slug}`);
+  console.log(`[restaurant-import:persist] DONE slug=${result.draft.slug}`);
+  return result;
+}
+
+async function failImport(
+  importJobId: string,
+  message: string,
+): Promise<void> {
+  "use step";
+  await recordImportFailure(importJobId, message);
 }
 
 async function enhanceDraftImages(
@@ -276,15 +211,14 @@ async function enhanceDraftImages(
   }
 }
 
-async function emitComplete(draft: RestaurantDraft): Promise<void> {
+async function emitComplete(
+  persisted: PersistedRestaurantImport,
+): Promise<void> {
   "use step";
-  await emit({ type: "complete", draft });
-}
-
-function toDatabaseImageProvenance(
-  value: RestaurantDraft["heroImageProvenance"],
-): "OFFICIAL" | "OWNER" | "PERMISSIONED_UGC" | undefined {
-  if (!value) return undefined;
-  if (value === "permissioned-ugc") return "PERMISSIONED_UGC";
-  return value.toUpperCase() as "OFFICIAL" | "OWNER";
+  await emit({
+    type: "complete",
+    draft: persisted.draft,
+    importJobId: persisted.importJobId,
+    urls: persisted.urls,
+  });
 }

@@ -85,6 +85,7 @@ model Restaurant {
   phone                String?
   email                String?
   sourceUrl            String?
+  sourceKey            String?           @unique
   logoUrl              String?
   heroImageUrl         String?
   heroOriginalImageUrl String?
@@ -150,6 +151,7 @@ model ImportJob {
   id            String       @id @default(cuid())
   status        ImportStatus @default(QUEUED)
   source        String
+  sourceKey     String?
   workflowRunId String?
   error         String?
   startedAt     DateTime?
@@ -158,6 +160,8 @@ model ImportJob {
   restaurant    Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+
+  @@index([sourceKey, createdAt])
 }
 
 model SiteVersion {

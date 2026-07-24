@@ -9,9 +9,21 @@ import {
 export async function getRestaurantDraft(
   slug: string,
 ): Promise<RestaurantDraft> {
+  return (
+    (await findRestaurantDraft(slug)) ?? {
+      ...sampleRestaurant,
+      slug,
+    }
+  );
+}
+
+export async function findRestaurantDraft(
+  slug: string,
+): Promise<RestaurantDraft | null> {
   const leadDraft = leadDrafts[slug];
   if (!process.env.DATABASE_URL) {
-    return leadDraft ?? { ...sampleRestaurant, slug };
+    if (leadDraft) return leadDraft;
+    return slug === sampleRestaurant.slug ? sampleRestaurant : null;
   }
 
   const restaurant = await getDb().restaurant.findUnique({
@@ -26,7 +38,7 @@ export async function getRestaurantDraft(
     },
   });
 
-  if (!restaurant) return leadDraft ?? { ...sampleRestaurant, slug };
+  if (!restaurant) return null;
   const latestTheme = restaurant.siteVersions[0]?.theme as
     | RestaurantDraft["palette"]
     | undefined;
