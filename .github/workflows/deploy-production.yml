@@ -16,7 +16,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: production
+    environment: Production
     env:
       AWS_REGION: us-west-1
       ARTIFACT_BUCKET: restofront-production-deploy-948918267147-us-west-1

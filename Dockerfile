@@ -21,6 +21,12 @@ ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_EXTRA_CA_CERTS=/app/certs/aws-rds-global-bundle.pem
+
+ADD --checksum=sha256:e5bb2084ccf45087bda1c9bffdea0eb15ee67f0b91646106e466714f9de3c7e3 \
+  https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem \
+  /app/certs/aws-rds-global-bundle.pem
+RUN chmod 0444 /app/certs/aws-rds-global-bundle.pem
 
 COPY --from=builder --chown=bun:bun /app/node_modules ./node_modules
 COPY --from=builder --chown=bun:bun /app/.next/standalone ./
