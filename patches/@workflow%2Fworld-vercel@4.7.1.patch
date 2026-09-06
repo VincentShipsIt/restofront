@@ -1,5 +1,5 @@
 diff --git a/package.json b/package.json
-index a4e031f71cd42839bd75eb7574c172b0c1a5db7d..3acf2eb402f723e2177680904d34c7dc2ca07b9a 100644
+index e1e9ec41ca7ddae57602023f0968e253ef73ae64..b86d1758ccdef44e0e8707785cc55c96124a73b8 100644
 --- a/package.json
 +++ b/package.json
 @@ -30,7 +30,7 @@
@@ -10,4 +10,4 @@ index a4e031f71cd42839bd75eb7574c172b0c1a5db7d..3acf2eb402f723e2177680904d34c7dc
 +    "undici": "7.29.0",
      "zod": "~4.3.6",
      "@workflow/errors": "4.2.1",
-     "@workflow/world": "4.4.0"
+     "@workflow/world": "4.5.0"

@@ -14,10 +14,10 @@ is mapped to the locked parent that introduced it and the remediation below.
 | --- | --- | --- | --- |
 | [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx) | `deepmerge-ts@7.1.5` | `prisma@7.9.1 -> @prisma/config@7.9.1` | Exact `deepmerge-ts@8.0.0` override |
 | [GHSA-jmr9-qjv8-65gv](https://github.com/advisories/GHSA-jmr9-qjv8-65gv) | `extract-zip@2.0.1` | `puppeteer-core@24.43.1 -> @puppeteer/browsers@2.13.2`; also `@lhci/cli@0.15.1 -> lighthouse@12.6.1` | Remove LHCI; upgrade to `lighthouse@13.4.1` and `puppeteer-core@25.9.0` |
-| [GHSA-28wg-ghj8-5hjv](https://github.com/advisories/GHSA-28wg-ghj8-5hjv) | `nanoid@5.1.6` | `workflow@4.8.4 -> @workflow/core@4.8.4` | Patch the exact parent manifest to `nanoid@5.1.16` |
+| [GHSA-28wg-ghj8-5hjv](https://github.com/advisories/GHSA-28wg-ghj8-5hjv) | `nanoid@5.1.6` | `workflow@4.8.5 -> @workflow/core@4.8.5` | Patch the exact parent manifest to `nanoid@5.1.16` |
 | [GHSA-52f5-9888-hmc6](https://github.com/advisories/GHSA-52f5-9888-hmc6) | `tmp@0.1.0` | Direct dependency of `@lhci/cli@0.15.1` | Remove LHCI |
 | [GHSA-ph9p-34f9-6g65](https://github.com/advisories/GHSA-ph9p-34f9-6g65) | `tmp@0.0.33` | `@lhci/cli@0.15.1 -> inquirer@6.5.2 -> external-editor@3.1.0` | Remove LHCI |
-| [GHSA-8xcm-r25x-g524](https://github.com/advisories/GHSA-8xcm-r25x-g524) | `undici@7.28.0` | `@workflow/world-local@4.3.0` and `@workflow/world-vercel@4.7.0` | Patch both exact parent manifests to `undici@7.29.0` |
+| [GHSA-8xcm-r25x-g524](https://github.com/advisories/GHSA-8xcm-r25x-g524) | `undici@7.28.0` | `@workflow/world-local@4.4.0` and `@workflow/world-vercel@4.7.1` | Patch both exact parent manifests to `undici@7.29.0` |
 | [GHSA-4cwx-7wf7-3272](https://github.com/advisories/GHSA-4cwx-7wf7-3272) | `undici@7.28.0` | Same Workflow parents | Same exact parent patches |
 | [GHSA-m8rv-5g2x-5cg5](https://github.com/advisories/GHSA-m8rv-5g2x-5cg5) | `undici@7.28.0` | Same Workflow parents | Same exact parent patches |
 | [GHSA-jr45-8vmc-qm54](https://github.com/advisories/GHSA-jr45-8vmc-qm54) | `undici@7.28.0` | Same Workflow parents | Same exact parent patches |
@@ -49,13 +49,18 @@ manifest-only `patchedDependencies` entries:
 
 | Exact package | Manifest edge | Patch SHA-256 |
 | --- | --- | --- |
-| `@workflow/core@4.8.4` | `nanoid: 5.1.6 -> 5.1.16` | `e6872431c9b82f5ce2115e6a17e23740d39373a601e0ba061cc40da7cc6d79f5` |
-| `@workflow/world-local@4.3.0` | `undici: 7.28.0 -> 7.29.0` | `18e492ba1128c164e2be37b16bb100bd9c56b3b97aa9181cf812dda0a3b8d1ef` |
-| `@workflow/world-vercel@4.7.0` | `undici: 7.28.0 -> 7.29.0` | `6aabb73040cd6d69a52a96883e10223f28bc6cd65a2518ffc702046f120a0601` |
+| `@workflow/core@4.8.5` | `nanoid: 5.1.6 -> 5.1.16` | `12195861744c6d63472781fd83379257830e8742cd9a5ba961d90f6845670d9c` |
+| `@workflow/world-local@4.4.0` | `undici: 7.28.0 -> 7.29.0` | `5b3ed8a7fa88ec829cf6cfed719524b7d173d2a9a21df9555c905529d72347e3` |
+| `@workflow/world-vercel@4.7.1` | `undici: 7.28.0 -> 7.29.0` | `96180ba987ae3b873631b66e5676a034a65e06aec2936996369b5dec2ea0935d` |
+
+On 2026-09-06, PR #205 upgraded these three Workflow parents. Their new
+manifests still pin the vulnerable dependencies, so the manifest-only patches
+were regenerated and reviewed against the new exact versions above. The
+lockfile retains the remediated child edges and all routine dependency updates.
 
 The contract test asserts those exact package versions, filenames, contents,
 and hashes. It also proves that Workflow receives Nano ID 5.1.16 and Undici
-7.29.0, PostCSS retains Nano ID 3.3.18, the application retains Undici 8.10.0,
+7.29.0, PostCSS retains Nano ID 3.3.18, the application retains Undici 8.10.1,
 and the APIs used by Workflow remain callable. These patches should be removed
 as soon as the corresponding Workflow packages publish the fixed dependency
 edges; an upstream version change intentionally breaks the exact patch key and
