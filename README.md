@@ -20,8 +20,8 @@ gates.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Restaurant | public | launched | niche | enabled | enabled | enabled | enabled | enabled | enabled |
 | Beauty | public | unlaunched | disabled | unsupported | enabled | unsupported | unsupported | unsupported | unsupported |
-| Food Retail | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | not-yet |
-| Local Service | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | not-yet |
+| Food Retail | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | enabled |
+| Local Service | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | enabled |
 
 - **Factory visibility** — `marketing.publiclyAccessible`: the shared
   `/niche/[vertical]` route.
@@ -70,7 +70,7 @@ What happens after preview depends on the matrix above:
 - **Food Retail and Local Service (`factory`)** — an approved preview can
   claim the shared €49 Cornershopdev plan and publish on
   `<slug>.cornershop.dev`. Custom domains and source monitoring are enabled.
-  Owner analytics, lead inbox, and articles are not-yet.
+  Owner articles are enabled. Owner analytics and lead inbox are not-yet.
 - **Beauty (`disabled`)** — the factory `/niche/beauty` preview stays
   non-chargeable. Claim, owner mutation, billing, custom domains, monitoring,
   leads, and articles are unsupported.
@@ -187,8 +187,8 @@ The vertical is factory-claimable but not publicly launched: marketing
 hostnames are empty, domain and sender are null, and `publiclyAccessible` is
 false. Claim mode is `factory`. Already-published snapshots render, and owners
 with the food-retail dashboard may publish and roll back. Custom domains,
-source monitoring, and the photo library are enabled. Owner analytics, lead
-inbox, and articles are not-yet. See the capability matrix above and
+source monitoring, articles, and the photo library are enabled. Owner analytics
+and lead inbox are not-yet. See the capability matrix above and
 [`docs/verticals/food-retail.md`](docs/verticals/food-retail.md).
 
 ## Local-service vertical
@@ -214,10 +214,10 @@ trade, services, claims, or contact evidence.
 
 The vertical is registered for private imports, previews, and revision-safe
 owner editing. Factory claim, publication, custom domains, source monitoring,
-and the photo library are enabled. Public niche access and standalone launch
-stay closed until a real domain, exact routed hostname, and matching verified
-sender satisfy `verticalLaunchReadiness`. Owner analytics, lead inbox, and
-articles are not-yet. See the capability matrix above and
+articles, and the photo library are enabled. Public niche access and standalone
+launch stay closed until a real domain, exact routed hostname, and matching verified
+sender satisfy `verticalLaunchReadiness`. Owner analytics and lead inbox
+are not-yet. See the capability matrix above and
 [`docs/verticals/local-service.md`](docs/verticals/local-service.md).
 
 ## Internationalization
