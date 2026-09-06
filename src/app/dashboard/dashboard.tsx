@@ -981,7 +981,7 @@ export function Dashboard({
                 copy="Fresh, locally relevant articles written from your own menu and neighbourhood — reviewed by you before anything goes live."
               />
               <div className="mt-8">
-                <ArticlesPanel siteSlug={draft.slug} />
+                <ArticlesPanel siteSlug={draft.slug} liveUrl={liveUrl} isPublished={isPublished} demo={demo} />
               </div>
             </TabsContent>
 

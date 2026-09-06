@@ -44,7 +44,7 @@ export async function GET(
       createdAt: true,
     },
   });
-  return Response.json({ articles });
+  return Response.json({ articles }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(
