@@ -1,5 +1,7 @@
 "use client";
 
+import { ArticlesPanel } from "@/components/articles-panel";
+
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import {
@@ -579,6 +581,9 @@ export function FoodRetailDashboard({
           </Card>
 
           <OwnerPaidOperationsSection paid={paidOps} />
+          {isOwnerOperationEnabled(ownerOperations.articles) ? (
+            <ArticlesPanel siteSlug={draft.slug} liveUrl={paidOps.liveUrl} isPublished={published} />
+          ) : null}
           {isOwnerOperationEnabled(ownerOperations.sourceMonitoring) ? (
             <SourceMonitoringPanel
               siteSlug={draft.slug}

@@ -73,6 +73,24 @@ describe("release integration contract", () => {
     );
   });
 
+  it("runs owner article browser checks and preserves audits in required jobs", async () => {
+    type Step = { run?: string; if?: string; with?: Record<string, string> };
+    const ci = Bun.YAML.parse(await readRepoFile(".github/workflows/ci.yml")) as {
+      jobs: Record<string, { steps: Step[] }>;
+    };
+    const browserSteps = ci.jobs["first-customer-browser-e2e"].steps;
+    const installation = browserSteps.findIndex((step) => step.run === "bunx playwright install --with-deps chromium");
+    const articles = browserSteps.findIndex((step) => step.run === "bun tests/owner-articles/browser.ts");
+    expect(installation).toBeGreaterThanOrEqual(0);
+    expect(articles).toBeGreaterThan(installation);
+    const verifySteps = ci.jobs.verify.steps;
+    expect(verifySteps.some((step) => step.run === "bun run audit:dependencies")).toBe(true);
+    const evidence = verifySteps.find((step) => step.with?.name === "required-dependency-audit");
+    expect(evidence?.if).toBe("always()");
+    expect(evidence?.with?.["if-no-files-found"]).toBe("error");
+    expect(evidence?.with?.path.split("\n")).toEqual(expect.arrayContaining(["bun-audit.json", "bun-audit-raw.json", "bun-audit-verdict.json"]));
+  });
+
   it("keeps production deployment stable-release-only", async () => {
     const ci = await readRepoFile(".github/workflows/ci.yml");
     expect(ci).toContain(

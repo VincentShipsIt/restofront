@@ -4,8 +4,8 @@
 electricians, builders, repair businesses, and artisans. It is registered in
 the existing vertical registry and uses the shared crawler, import workflow,
 site tables, renderer, owner editing, domain routing, and
-source-monitoring engine. Owner analytics, lead inbox, and articles are
-not-yet. It does not fork the app and it
+source-monitoring engine. Owner article review/generation is enabled.
+Owner analytics and lead inbox are not-yet. It does not fork the app and it
 does not accept model-authored HTML, CSS, class names, or components.
 
 ## Data contract
@@ -107,10 +107,11 @@ Matches the README matrix and `resolveOwnerOperations(LOCAL_SERVICE)`:
 
 | Vertical | Factory visibility | Standalone launch | Claim mode | Owner mutation | Platform publication | Custom domains | Monitoring | Leads | Articles |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Local Service | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | not-yet |
+| Local Service | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | enabled |
 
-Owner photo library is enabled. Owner analytics, lead inbox, and articles stay
-`not-yet`. The renderer disables the restaurant booking-request form.
+Owner photo library and article review/generation are enabled. Owner analytics
+and lead inbox stay `not-yet`. The renderer disables the restaurant
+booking-request form.
 
 ## Launch gate
 

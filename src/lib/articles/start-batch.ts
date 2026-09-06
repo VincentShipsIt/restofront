@@ -10,8 +10,8 @@ import {
   areArticleMutationsGated,
 } from "@/lib/articles/mutation-gate";
 import { isArticleBatchWorkflowName } from "@/lib/articles/workflow-state";
+import { ARTICLE_BATCH_CADENCE_MS } from "@/lib/articles/owner-article-state";
 
-const ARTICLE_BATCH_CADENCE_MS = 7 * 24 * 60 * 60_000;
 const ARTICLE_BATCH_DISPATCH_LIMIT = 100;
 export const ARTICLE_BATCH_DISPATCH_LEASE_MS = 5 * 60_000;
 

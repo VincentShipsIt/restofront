@@ -20,8 +20,8 @@ gates.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Restaurant | public | launched | niche | enabled | enabled | enabled | enabled | enabled | enabled |
 | Beauty | public | unlaunched | disabled | unsupported | enabled | unsupported | unsupported | unsupported | unsupported |
-| Food Retail | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | not-yet |
-| Local Service | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | not-yet |
+| Food Retail | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | enabled |
+| Local Service | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | enabled |
 
 - **Factory visibility** — `marketing.publiclyAccessible`: the shared
   `/niche/[vertical]` route.
@@ -70,7 +70,7 @@ What happens after preview depends on the matrix above:
 - **Food Retail and Local Service (`factory`)** — an approved preview can
   claim the shared €49 Cornershopdev plan and publish on
   `<slug>.cornershop.dev`. Custom domains and source monitoring are enabled.
-  Owner analytics, lead inbox, and articles are not-yet.
+  Owner articles are enabled. Owner analytics and lead inbox are not-yet.
 - **Beauty (`disabled`)** — the factory `/niche/beauty` preview stays
   non-chargeable. Claim, owner mutation, billing, custom domains, monitoring,
   leads, and articles are unsupported.
@@ -187,8 +187,8 @@ The vertical is factory-claimable but not publicly launched: marketing
 hostnames are empty, domain and sender are null, and `publiclyAccessible` is
 false. Claim mode is `factory`. Already-published snapshots render, and owners
 with the food-retail dashboard may publish and roll back. Custom domains,
-source monitoring, and the photo library are enabled. Owner analytics, lead
-inbox, and articles are not-yet. See the capability matrix above and
+source monitoring, articles, and the photo library are enabled. Owner analytics
+and lead inbox are not-yet. See the capability matrix above and
 [`docs/verticals/food-retail.md`](docs/verticals/food-retail.md).
 
 ## Local-service vertical
@@ -214,10 +214,10 @@ trade, services, claims, or contact evidence.
 
 The vertical is registered for private imports, previews, and revision-safe
 owner editing. Factory claim, publication, custom domains, source monitoring,
-and the photo library are enabled. Public niche access and standalone launch
-stay closed until a real domain, exact routed hostname, and matching verified
-sender satisfy `verticalLaunchReadiness`. Owner analytics, lead inbox, and
-articles are not-yet. See the capability matrix above and
+articles, and the photo library are enabled. Public niche access and standalone
+launch stay closed until a real domain, exact routed hostname, and matching verified
+sender satisfy `verticalLaunchReadiness`. Owner analytics and lead inbox
+are not-yet. See the capability matrix above and
 [`docs/verticals/local-service.md`](docs/verticals/local-service.md).
 
 ## Internationalization
@@ -242,7 +242,7 @@ Package majors below match `package.json`. Runtime image pins live in the
 Dockerfile.
 
 - Next.js 16 App Router and React 19
-- Bun 1.4.0 for installs, Prisma/Workflow migrations, and operator tooling;
+- Bun 1.4.2 for installs, Prisma/Workflow migrations, and operator tooling;
   pinned Node.js 24.20.0 LTS for Next.js builds and the production standalone
   server
 - Tailwind CSS v4 and shadcn/ui
@@ -532,3 +532,20 @@ this same container, where the rewrite fires again — an infinite loop.
 - `/api/analytics/events` — first-party cookieless live-site event intake
 - `/preview/[slug]` — private full-screen site preview
 - `/preview/[slug]/[locale]` — translated site preview
+
+## Local verification runtime
+
+Use Bun 1.4.2 for installation, operator tools, and tests; CI and the production
+image use the same version. `bun run test` uses per-file isolation so module
+mocks cannot replace another suite's real implementation. Node 24.20.0 runs
+the production Next.js build and server.
+
+`bun run audit:dependencies` checks the complete locked graph with bounded
+transport retries and writes `bun-audit.json` plus `bun-audit-verdict.json`.
+A registry outage is a failed, unavailable audit, never a clean result.
+
+The September 6 security refresh pins compatible transitive resolutions:
+`fast-uri` 3.1.7, `mysql2` 3.24.3, and `qs` 6.16.0. Prisma pins an older MySQL
+driver, so the override remains until upstream removes that vulnerable edge.
+The existing Workflow Nano ID and Undici manifest patches remain required;
+dependency updates must pass their runtime contract before merging.

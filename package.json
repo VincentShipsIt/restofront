@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "design:lint": "designmd lint DESIGN.md && designmd lint docs/brand/cornershopdev/DESIGN.md",
-    "test": "bun test",
+    "test": "bun test --isolate",
     "test:e2e:first-customer": "playwright test tests/e2e/first-customer.pw.ts",
     "deps:update": "bunx npm-check-updates@latest -u --packageManager bun --deep --reject typescript,eslint && bun install",
     "lighthouse": "node scripts/run-lighthouse.mjs",
@@ -36,7 +36,8 @@
     "workflow:migrate": "bun node_modules/@workflow/world-postgres/bin/setup.js",
     "postinstall": "bunx --bun prisma generate",
     "operator:import:servizo": "bun scripts/import-servizo.ts",
-    "operator:claim:servizo": "bun scripts/issue-servizo-claim-invitation.ts"
+    "operator:claim:servizo": "bun scripts/issue-servizo-claim-invitation.ts",
+    "audit:dependencies": "bun scripts/audit-dependencies.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1125.0",
@@ -96,7 +97,10 @@
   ],
   "overrides": {
     "deepmerge-ts": "8.0.0",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "fast-uri": "3.1.7",
+    "mysql2": "3.24.3",
+    "qs": "6.16.0"
   },
   "patchedDependencies": {
     "@workflow/core@4.8.4": "patches/@workflow%2Fcore@4.8.4.patch",
