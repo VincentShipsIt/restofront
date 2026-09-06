@@ -111,6 +111,8 @@ describe("dependency audit workflow", () => {
       "Dockerfile",
       ".github/dependabot.yml",
       ".github/workflows/**",
+      "scripts/audit-dependencies.ts",
+      "src/lib/dependency-audit.test.ts",
     ];
 
     expect(workflow.on.pull_request.paths).toEqual(dependencyPaths);
@@ -150,16 +152,16 @@ describe("dependency audit workflow", () => {
       "actions/upload-artifact@v7",
     ]);
     expect(checkout?.with).toEqual({ "persist-credentials": false });
-    expect(setupBun?.with).toEqual({ "bun-version": "1.3.14" });
+    expect(setupBun?.with).toEqual({ "bun-version": "1.4.2" });
     expect(install).toBeDefined();
-    expect(audit?.shell).toBe("bash");
+
     expect(audit?.run?.trim()).toBe(
-      "set -o pipefail\nbun audit --json | tee bun-audit.json",
+      "bun scripts/audit-dependencies.ts",
     );
     expect(upload?.if).toBe("always()");
     expect(upload?.with).toEqual({
       name: "bun-audit-json",
-      path: "bun-audit.json",
+      path: "bun-audit.json\nbun-audit-verdict.json\n",
       "if-no-files-found": "error",
     });
   });

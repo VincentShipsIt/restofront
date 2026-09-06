@@ -53,3 +53,7 @@ next-env.d.ts
 
 # lighthouse ci reports
 /.lighthouseci/
+
+# Local dependency audit evidence
+/bun-audit.json
+/bun-audit-verdict.json

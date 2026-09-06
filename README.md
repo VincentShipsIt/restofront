@@ -532,3 +532,20 @@ this same container, where the rewrite fires again — an infinite loop.
 - `/api/analytics/events` — first-party cookieless live-site event intake
 - `/preview/[slug]` — private full-screen site preview
 - `/preview/[slug]/[locale]` — translated site preview
+
+## Local verification runtime
+
+Use Bun 1.4.2 for installation, operator tools, and tests; CI and the production
+image use the same version. `bun run test` uses per-file isolation so module
+mocks cannot replace another suite's real implementation. Node 24.20.0 runs
+the production Next.js build and server.
+
+`bun run audit:dependencies` checks the complete locked graph with bounded
+transport retries and writes `bun-audit.json` plus `bun-audit-verdict.json`.
+A registry outage is a failed, unavailable audit, never a clean result.
+
+The September 6 security refresh pins compatible transitive resolutions:
+`fast-uri` 3.1.7, `mysql2` 3.24.3, and `qs` 6.16.0. Prisma pins an older MySQL
+driver, so the override remains until upstream removes that vulnerable edge.
+The existing Workflow Nano ID and Undici manifest patches remain required;
+dependency updates must pass their runtime contract before merging.

@@ -84,11 +84,19 @@ uses `package-ecosystem: bun`, while `.github/workflows/dependency-audit.yml`
 provides the missing lockfile-native vulnerability detection. It runs for
 relevant dependency and workflow changes — including `.npmrc`, which can
 reroute registry advisory lookups — on pull requests and `main` pushes,
-daily at 04:17 UTC, and on manual dispatch. The job installs Bun 1.3.14, validates
+daily at 04:17 UTC, and on manual dispatch. The job installs Bun 1.4.2, validates
 that `package.json` and `bun.lock` agree with a frozen install while lifecycle
-scripts are disabled, then runs the exact unfiltered audit with Bash pipefail.
-Any reported vulnerability or registry request failure fails the job, while the
-raw JSON is still retained as a workflow artifact.
+scripts are disabled, then runs `bun scripts/audit-dependencies.ts`. Each
+unfiltered `bun audit --json` attempt has a 60-second process deadline. Only
+unavailable or invalid responses retry, at most twice, after 2 and 5 seconds.
+Any reported vulnerability fails immediately, regardless of severity or process
+exit status. Only a successful empty advisory object establishes a clean graph.
+
+The artifact contains raw `bun-audit.json` and `bun-audit-verdict.json`. The
+verdict distinguishes `clean`, `advisories`, and `unavailable`, records every
+attempt, and never represents a transport failure as clean. Exit codes are 0,
+1, and 2 respectively. The job has a ten-minute outer deadline. Runner and
+fixture changes trigger the workflow alongside dependency changes.
 
 Per the [Bun audit documentation](https://bun.sh/docs/pm/cli/audit), `bun audit`
 reads the package list from `bun.lock` and sends its package names and versions

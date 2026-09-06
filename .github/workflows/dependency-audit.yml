@@ -10,6 +10,8 @@ on:
       - "Dockerfile"
       - ".github/dependabot.yml"
       - ".github/workflows/**"
+      - "scripts/audit-dependencies.ts"
+      - "src/lib/dependency-audit.test.ts"
   push:
     branches:
       - main
@@ -21,6 +23,8 @@ on:
       - "Dockerfile"
       - ".github/dependabot.yml"
       - ".github/workflows/**"
+      - "scripts/audit-dependencies.ts"
+      - "src/lib/dependency-audit.test.ts"
   schedule:
     - cron: "17 4 * * *"
   workflow_dispatch:
@@ -31,6 +35,7 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -40,21 +45,20 @@ jobs:
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.3.14"
+          bun-version: "1.4.2"
 
       - name: Validate locked dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Audit locked dependencies
-        shell: bash
-        run: |
-          set -o pipefail
-          bun audit --json | tee bun-audit.json
+        run: bun scripts/audit-dependencies.ts
 
       - name: Upload audit evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: bun-audit-json
-          path: bun-audit.json
+          path: |
+            bun-audit.json
+            bun-audit-verdict.json
           if-no-files-found: error
