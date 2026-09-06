@@ -47,6 +47,16 @@ jobs:
         with:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
+      - name: Require a clean dependency audit
+        run: bun run audit:dependencies
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: required-dependency-audit
+          path: |
+            bun-audit.json
+            bun-audit-verdict.json
+          retention-days: 14
       - run: bunx --bun prisma migrate deploy
       - name: Seeded predecessor upgrade through current migrations
         env:
@@ -204,6 +214,8 @@ jobs:
       - run: bun run workflow:migrate
       - run: bun run build
       - run: bunx playwright install --with-deps chromium
+      - name: Owner article review and generation browser checks
+        run: bun tests/owner-articles/browser.ts
       - name: Browser first-customer journey
         id: browser_journey
         shell: bash

@@ -201,7 +201,7 @@ describe("committed bun.lock graph", () => {
       [Object.keys(packageJson.devDependencies ?? {}), "development"],
     ] as const) {
       for (const name of names) {
-        const prefix = `pkg:npm/${name.replace("@", "%40")}@`;
+        const prefix = `pkg:npm/${name.replaceAll("@", "%40")}@`;
         const entries = Object.values(resolved).filter(
           (entry) => entry.package_url.startsWith(prefix),
         );
