@@ -230,4 +230,30 @@ describe("shared owner paid operations surface", () => {
     );
     expect(html).not.toContain("Approved-source intake");
   });
+  it("shows the shared articles panel only when the workspace capability enables it", () => {
+    for (const articles of ["enabled", "not-yet"] as const) {
+      const html = renderToStaticMarkup(
+        <FoodRetailDashboard
+          email="owner@example.com"
+          brand={FACTORY_BRAND}
+          initialDraft={sampleFoodRetailDraft}
+          initialRevision={7}
+          initiallyPublished
+          canSwitchWorkspace={false}
+          platformUrl="https://bakery.cornershop.dev"
+          billingAccess={activeBilling}
+          publicationHistory={history}
+          ownerOperations={{ ...foodRetailOwnerOperations, articles }}
+        />,
+      );
+      if (articles === "enabled") {
+        expect(html).toContain("Blog articles");
+        expect(html).not.toContain("Articles are not ready for this workspace yet.");
+      } else {
+        expect(html).not.toContain("Blog articles");
+        expect(html).toContain("Articles are not ready for this workspace yet.");
+      }
+    }
+  });
+
 });

@@ -42,11 +42,23 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: "24.19.0"
+          node-version: "24.20.0"
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: 1.4.2
       - run: bun install --frozen-lockfile
+      - name: Require a clean dependency audit
+        run: bun run audit:dependencies
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: required-dependency-audit
+          if-no-files-found: error
+          path: |
+            bun-audit.json
+            bun-audit-raw.json
+            bun-audit-verdict.json
+          retention-days: 14
       - run: bunx --bun prisma migrate deploy
       - name: Seeded predecessor upgrade through current migrations
         env:
@@ -195,15 +207,17 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v7
         with:
-          node-version: "24.19.0"
+          node-version: "24.20.0"
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.14
+          bun-version: 1.4.2
       - run: bun install --frozen-lockfile
       - run: bunx --bun prisma migrate deploy
       - run: bun run workflow:migrate
       - run: bun run build
       - run: bunx playwright install --with-deps chromium
+      - name: Owner article review and generation browser checks
+        run: bun tests/owner-articles/browser.ts
       - name: Browser first-customer journey
         id: browser_journey
         shell: bash

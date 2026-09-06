@@ -96,11 +96,11 @@ Matches the README matrix and `resolveOwnerOperations(FOOD_RETAIL)`:
 
 | Vertical | Factory visibility | Standalone launch | Claim mode | Owner mutation | Platform publication | Custom domains | Monitoring | Leads | Articles |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Food Retail | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | not-yet |
+| Food Retail | private | unlaunched | factory | enabled | enabled | enabled | enabled | not-yet | enabled |
 
-Owner photo library is enabled. Owner analytics, lead inbox, and articles stay
-`not-yet`. This vertical does not inherit restaurant reservations or booking
-leads.
+Owner photo library and article review/generation are enabled. Owner analytics
+and lead inbox stay `not-yet`. This vertical does not inherit restaurant
+reservations or booking leads.
 
 ## Factory claim and standalone launch gates
 

@@ -97,7 +97,7 @@ describe("Lighthouse CI environment", () => {
     expect(fontAudit).toContain(
       'import { browserPath } from "./browser-path.mjs";',
     );
-    expect(workflow.match(/node-version: "24\.19\.0"/g)).toHaveLength(2);
+    expect(workflow.match(/node-version: "24\.20\.0"/g)).toHaveLength(2);
   });
 
   it("keeps brand fonts route-scoped instead of globally preloading them", async () => {

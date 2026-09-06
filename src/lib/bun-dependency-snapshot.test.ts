@@ -196,41 +196,25 @@ describe("committed bun.lock graph", () => {
     expect(summary.runtime).toBeGreaterThan(0);
     expect(summary.development).toBeGreaterThan(0);
 
-    expect(resolved[npmPackageUrl("next", "16.3.3")]?.relationship).toBe(
-      "direct",
-    );
-    expect(resolved[npmPackageUrl("next", "16.3.3")]?.scope).toBe("runtime");
-    expect(resolved[npmPackageUrl("typescript", "6.0.3")]?.relationship).toBe(
-      "direct",
-    );
-    expect(resolved[npmPackageUrl("typescript", "6.0.3")]?.scope).toBe(
-      "development",
-    );
-    expect(resolved[npmPackageUrl("@ai-sdk/gateway", "4.0.67")]).toEqual({
-      package_url: "pkg:npm/%40ai-sdk/gateway@4.0.67",
-      relationship: "indirect",
-      scope: "runtime",
-      dependencies: [
-        "pkg:npm/%40ai-sdk/provider-utils@5.0.32",
-        "pkg:npm/%40ai-sdk/provider@4.0.8",
-        "pkg:npm/%40vercel/oidc@3.2.0",
-      ],
-    });
-    expect(resolved[npmPackageUrl("axe-core", "4.13.0")]?.relationship).toBe(
-      "indirect",
-    );
-    expect(resolved[npmPackageUrl("axe-core", "4.13.0")]?.scope).toBe(
-      "development",
-    );
-    expect(resolved[npmPackageUrl("nanoid", "5.1.16")]?.relationship).toBe(
-      "indirect",
-    );
-    expect(resolved[npmPackageUrl("nanoid", "3.3.18")]?.package_url).toBe(
-      "pkg:npm/nanoid@3.3.18",
-    );
-    expect(packageJson.dependencies?.["@ai-sdk/gateway"]).toBeUndefined();
-    expect(packageJson.devDependencies?.["axe-core"]).toBeUndefined();
-    expect(lockfileSource).toContain('"@ai-sdk/gateway@4.0.67"');
-    expect(lockfileSource).toContain('"axe-core@');
+    for (const [names, scope] of [
+      [Object.keys(packageJson.dependencies ?? {}), "runtime"],
+      [Object.keys(packageJson.devDependencies ?? {}), "development"],
+    ] as const) {
+      for (const name of names) {
+        const prefix = `pkg:npm/${name.replaceAll("@", "%40")}@`;
+        const entries = Object.values(resolved).filter(
+          (entry) => entry.package_url.startsWith(prefix),
+        );
+        expect(entries.some((entry) => entry.relationship === "direct")).toBe(true);
+        if (scope === "runtime") {
+          expect(entries.some((entry) => entry.scope === "runtime")).toBe(true);
+        }
+      }
+    }
+    for (const entry of Object.values(resolved)) {
+      for (const dependency of entry.dependencies ?? []) {
+        expect(resolved[dependency]).toBeDefined();
+      }
+    }
   });
 });

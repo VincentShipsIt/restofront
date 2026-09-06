@@ -1,5 +1,7 @@
 "use client";
 
+import { ArticlesPanel } from "@/components/articles-panel";
+
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import {
@@ -503,6 +505,9 @@ export function LocalServiceDashboard({
 
         <div className="mt-8">
           <OwnerPaidOperationsSection paid={paidOps} />
+          {isOwnerOperationEnabled(ownerOperations.articles) ? (
+            <div className="mt-8"><ArticlesPanel siteSlug={draft.slug} liveUrl={paidOps.liveUrl} isPublished={published} /></div>
+          ) : null}
         </div>
         {isOwnerOperationEnabled(ownerOperations.sourceMonitoring) ? (
           <div className="mt-8">

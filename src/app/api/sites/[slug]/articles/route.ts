@@ -44,7 +44,7 @@ export async function GET(
       createdAt: true,
     },
   });
-  return Response.json({ articles });
+  return Response.json({ articles }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function POST(
@@ -81,6 +81,8 @@ export async function POST(
   }
 
   if (parsed.data.action === "publish") {
+    // Full-body review is an owner UI acknowledgement. This endpoint enforces
+    // authorization and article state; it cannot prove that the owner read it.
     if (article.status !== "DRAFT") {
       return Response.json(
         { error: "Only draft articles can be published." },

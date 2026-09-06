@@ -131,7 +131,7 @@ describe("bun dependency snapshot workflow", () => {
       submitSteps.flatMap((step) => (step.uses ? [step.uses] : [])),
     ).toEqual(["actions/checkout@v7", "oven-sh/setup-bun@v2"]);
     expect(checkout?.with).toEqual({ "persist-credentials": false });
-    expect(setupBun?.with).toEqual({ "bun-version": "1.3.14" });
+    expect(setupBun?.with).toEqual({ "bun-version": "1.4.2" });
     expect(tests?.run).toBe(
       "bun test src/lib/bun-dependency-snapshot.test.ts src/lib/bun-dependency-snapshot-contract.test.ts",
     );

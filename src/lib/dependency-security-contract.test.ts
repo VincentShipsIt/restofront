@@ -128,6 +128,9 @@ describe("dependency security migration", () => {
       rootUndici: "8.10.0",
       prismaSchema: path.join(repoRoot, "prisma/schema.prisma"),
       nanoidLength: 21,
+      fastUri: "3.1.7",
+      mysql2: "3.24.3",
+      qs: "6.16.0",
     });
   });
 });
@@ -163,6 +166,16 @@ const runtimeProbe = String.raw`
   const localUndici = resolveDependency("node_modules/@workflow/world-local", "undici");
   const vercelUndici = resolveDependency("node_modules/@workflow/world-vercel", "undici");
   const rootUndici = resolveDependency(".", "undici");
+  const fastUri = resolveDependency(".", "fast-uri");
+  const mysql2 = resolveDependency("node_modules/prisma", "mysql2");
+  const queryString = resolveDependency(".", "qs");
+  const require = createRequire(path.resolve("package.json"));
+  const uri = require(fastUri.entry);
+  if (uri.serialize(uri.parse("https://example.test/menu?q=1")) !== "https://example.test/menu?q=1") throw new Error("fast-uri API mismatch");
+  const mysql = require(mysql2.entry);
+  if (mysql.format("SELECT ?", [42]) !== "SELECT 42") throw new Error("mysql2 API mismatch");
+  const qs = require(queryString.entry);
+  if (qs.parse("filter[name]=menu").filter.name !== "menu") throw new Error("qs API mismatch");
 
   const deepmerge = await import(pathToFileURL(prismaDependency.entry).href);
   const merged = deepmerge.deepmerge({ nested: { left: true } }, { nested: { right: true } });
@@ -201,5 +214,8 @@ const runtimeProbe = String.raw`
     rootUndici: rootUndici.version,
     prismaSchema: prisma.config.schema,
     nanoidLength: nanoidValue.length,
+    fastUri: fastUri.version,
+    mysql2: mysql2.version,
+    qs: queryString.version,
   }) + "\n");
 `;
