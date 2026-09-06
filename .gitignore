@@ -56,5 +56,5 @@ next-env.d.ts
 
 # Local dependency audit evidence
 /bun-audit.json
-bun-audit-raw.json
+/bun-audit-raw.json
 /bun-audit-verdict.json

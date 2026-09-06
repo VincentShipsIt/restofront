@@ -53,6 +53,7 @@ jobs:
         if: always()
         with:
           name: required-dependency-audit
+          if-no-files-found: error
           path: |
             bun-audit.json
             bun-audit-raw.json

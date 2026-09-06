@@ -39,6 +39,7 @@ import {
   OwnerBillingButton,
   OwnerDomainPanel,
   OwnerPublicationHistoryCard,
+  OwnerUnavailableCard,
   useOwnerPaidOperations,
 } from "@/components/owner-paid-operations";
 import { PhotoLibraryPanel } from "@/components/photo-library-panel";
@@ -983,7 +984,9 @@ export function Dashboard({
               <div className="mt-8">
                 {isOwnerOperationEnabled(ownerOperations.articles) ? (
                   <ArticlesPanel siteSlug={draft.slug} liveUrl={liveUrl} isPublished={isPublished} demo={demo} />
-                ) : null}
+                ) : (
+                  <OwnerUnavailableCard operation="articles" state={ownerOperations.articles === "enabled" ? "gated" : ownerOperations.articles} />
+                )}
               </div>
             </TabsContent>
 

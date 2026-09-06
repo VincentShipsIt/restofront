@@ -91,12 +91,12 @@ describe("owner operations capability model", () => {
     ] as const) {
       expect(resolveOwnerOperations(id).sourceMonitoring).toBe("enabled");
       expect(resolveOwnerOperations(id).photoLibrary).toBe("enabled");
+      expect(resolveOwnerOperations(id).articles).toBe("enabled");
     }
     for (const ops of [
       resolveOwnerOperations(Vertical.FOOD_RETAIL),
       resolveOwnerOperations(Vertical.LOCAL_SERVICE),
     ]) {
-      expect(ops.articles).toBe("enabled");
       expect(ops.analytics).toBe("not-yet");
       expect(ops.bookingInbox).toBe("not-yet");
     }
