@@ -60,5 +60,6 @@ jobs:
           name: bun-audit-json
           path: |
             bun-audit.json
+            bun-audit-raw.json
             bun-audit-verdict.json
           if-no-files-found: error

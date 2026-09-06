@@ -55,6 +55,7 @@ jobs:
           name: required-dependency-audit
           path: |
             bun-audit.json
+            bun-audit-raw.json
             bun-audit-verdict.json
           retention-days: 14
       - run: bunx --bun prisma migrate deploy

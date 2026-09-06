@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 type AuditPayload = Record<string, Array<Record<string, unknown>>>;
 type AttemptResult = {
   stdout: string;
+  stderr: string;
   exitCode: number | null;
   timedOut: boolean;
 };
@@ -17,6 +18,7 @@ export type DependencyAuditVerdict = {
   attempts: AuditAttempt[];
   advisoryCount: number;
   payload: AuditPayload | null;
+  rawAttempts: AttemptResult[];
 };
 
 const ATTEMPT_TIMEOUT_MS = 60_000;
@@ -33,9 +35,10 @@ export function executeAudit(
       killSignal: "SIGKILL",
       maxBuffer: 8 * 1024 * 1024,
       encoding: "utf8",
-    }, (error, stdout) => {
+    }, (error, stdout, stderr) => {
       resolve({
         stdout,
+        stderr,
         exitCode: error ? (typeof error.code === "number" ? error.code : null) : 0,
         timedOut: error?.killed === true,
       });
@@ -71,13 +74,15 @@ export async function auditDependencies(options: {
   const execute = options.execute ?? executeAudit;
   const pause = options.pause ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const attempts: AuditAttempt[] = [];
+  const rawAttempts: AttemptResult[] = [];
   for (let index = 0; index <= RETRY_DELAYS_MS.length; index += 1) {
     let result: AttemptResult;
     try {
       result = await execute();
     } catch {
-      result = { stdout: "", exitCode: null, timedOut: false };
+      result = { stdout: "", stderr: "Audit execution failed before returning output.", exitCode: null, timedOut: false };
     }
+    rawAttempts.push(result);
     const payload = parsePayload(result.stdout);
     const count = payload ? Object.values(payload).reduce((total, entries) => total + entries.length, 0) : 0;
     // Report discovered vulnerabilities even if the process exits unexpectedly.
@@ -95,17 +100,18 @@ export async function auditDependencies(options: {
               : "missing_or_invalid_audit_response",
     });
     if (status !== "unavailable") {
-      return { schemaVersion: 1, status, attempts, advisoryCount: count, payload };
+      return { schemaVersion: 1, status, attempts, advisoryCount: count, payload, rawAttempts };
     }
     const delay = RETRY_DELAYS_MS[index];
     if (delay !== undefined) await pause(delay);
   }
-  return { schemaVersion: 1, status: "unavailable", attempts, advisoryCount: 0, payload: null };
+  return { schemaVersion: 1, status: "unavailable", attempts, advisoryCount: 0, payload: null, rawAttempts };
 }
 
 if (import.meta.main) {
   const verdict = await auditDependencies();
   await Bun.write("bun-audit.json", `${JSON.stringify(verdict.payload, null, 2)}\n`);
+  await Bun.write("bun-audit-raw.json", `${JSON.stringify(verdict.rawAttempts, null, 2)}\n`);
   const summary = { schemaVersion: verdict.schemaVersion, status: verdict.status, attempts: verdict.attempts, advisoryCount: verdict.advisoryCount };
   await Bun.write("bun-audit-verdict.json", `${JSON.stringify(summary, null, 2)}\n`);
   process.stdout.write(`${JSON.stringify(summary)}\n`);

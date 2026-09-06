@@ -92,7 +92,9 @@ unavailable or invalid responses retry, at most twice, after 2 and 5 seconds.
 Any reported vulnerability fails immediately, regardless of severity or process
 exit status. Only a successful empty advisory object establishes a clean graph.
 
-The artifact contains raw `bun-audit.json` and `bun-audit-verdict.json`. The
+The artifact contains parsed `bun-audit.json`, `bun-audit-verdict.json`, and
+`bun-audit-raw.json` with verbatim stdout/stderr, exit status, and timeout state
+for every attempt, including malformed responses and recovered failures. The
 verdict distinguishes `clean`, `advisories`, and `unavailable`, records every
 attempt, and never represents a transport failure as clean. Exit codes are 0,
 1, and 2 respectively. The job has a ten-minute outer deadline. Runner and

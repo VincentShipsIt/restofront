@@ -242,7 +242,7 @@ Package majors below match `package.json`. Runtime image pins live in the
 Dockerfile.
 
 - Next.js 16 App Router and React 19
-- Bun 1.4.0 for installs, Prisma/Workflow migrations, and operator tooling;
+- Bun 1.4.2 for installs, Prisma/Workflow migrations, and operator tooling;
   pinned Node.js 24.20.0 LTS for Next.js builds and the production standalone
   server
 - Tailwind CSS v4 and shadcn/ui

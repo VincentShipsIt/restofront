@@ -161,7 +161,7 @@ describe("dependency audit workflow", () => {
     expect(upload?.if).toBe("always()");
     expect(upload?.with).toEqual({
       name: "bun-audit-json",
-      path: "bun-audit.json\nbun-audit-verdict.json\n",
+      path: "bun-audit.json\nbun-audit-raw.json\nbun-audit-verdict.json\n",
       "if-no-files-found": "error",
     });
   });
