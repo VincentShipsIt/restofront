@@ -581,7 +581,9 @@ export function FoodRetailDashboard({
           </Card>
 
           <OwnerPaidOperationsSection paid={paidOps} />
-          <ArticlesPanel siteSlug={draft.slug} liveUrl={paidOps.liveUrl} isPublished={published} />
+          {isOwnerOperationEnabled(ownerOperations.articles) ? (
+            <ArticlesPanel siteSlug={draft.slug} liveUrl={paidOps.liveUrl} isPublished={published} />
+          ) : null}
           {isOwnerOperationEnabled(ownerOperations.sourceMonitoring) ? (
             <SourceMonitoringPanel
               siteSlug={draft.slug}

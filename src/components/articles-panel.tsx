@@ -40,6 +40,7 @@ export function ArticlesPanel({ siteSlug, liveUrl, isPublished, demo = false }: 
   const admissionPending = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<string | null>(null);
+  const [refreshAttempt, setRefreshAttempt] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const baseUrl = `/api/sites/${encodeURIComponent(siteSlug)}/articles`;
 
@@ -48,7 +49,7 @@ export function ArticlesPanel({ siteSlug, liveUrl, isPublished, demo = false }: 
       fetch(baseUrl, { cache: "no-store", signal }),
       fetch(`${baseUrl}/generate`, { cache: "no-store", signal }),
     ]);
-    if (!articleResponse.ok || !generationResponse.ok) throw new Error("Could not refresh articles. We will retry automatically.");
+    if (!articleResponse.ok || !generationResponse.ok) throw new Error("Could not refresh articles.");
     const [data, status] = await Promise.all([
       articleResponse.json() as Promise<{ articles: DashboardArticle[] }>,
       generationResponse.json() as Promise<OwnerArticleGeneration>,
@@ -64,13 +65,21 @@ export function ArticlesPanel({ siteSlug, liveUrl, isPublished, demo = false }: 
     if (demo) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
+    let failures = 0;
     const refresh = async () => {
+      let delay = active ? 3000 : 30_000;
       try {
         await load(controller.signal);
-      } catch (cause) {
-        if (!controller.signal.aborted) setRefreshError(cause instanceof Error ? cause.message : "Could not load articles.");
+        failures = 0;
+      } catch {
+        if (controller.signal.aborted) return;
+        failures += 1;
+        delay = Math.min(delay * 2 ** failures, 60_000);
+        setRefreshError(failures >= 5
+          ? "Automatic refresh stopped after repeated failures. Retry to reconnect."
+          : `Could not refresh articles. Retrying in ${delay / 1000} seconds.`);
       } finally {
-        if (!controller.signal.aborted) timer = setTimeout(refresh, active ? 3000 : 30_000);
+        if (!controller.signal.aborted && failures < 5) timer = setTimeout(refresh, delay);
       }
     };
     void refresh();
@@ -78,7 +87,7 @@ export function ArticlesPanel({ siteSlug, liveUrl, isPublished, demo = false }: 
       controller.abort();
       clearTimeout(timer);
     };
-  }, [load, active, demo]);
+  }, [load, active, demo, refreshAttempt]);
 
   const act = async (articleId: string, action: "publish" | "unpublish") => {
     setBusyId(articleId);
@@ -145,6 +154,10 @@ export function ArticlesPanel({ siteSlug, liveUrl, isPublished, demo = false }: 
       <CardContent className="space-y-4">
         {error ? <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p> : null}
         {refreshError ? <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{refreshError}</p> : null}
+        {refreshError ? <Button variant="outline" size="sm" onClick={() => {
+          setRefreshError(null);
+          setRefreshAttempt((attempt) => attempt + 1);
+        }}>Retry article refresh</Button> : null}
         {notice ? <p role="status" className="rounded-lg bg-muted px-3 py-2 text-sm">{notice}</p> : null}
         {!isPublished ? <p className="text-sm text-muted-foreground">Your site is not public yet. Approved articles will become available when you publish the site.</p> : null}
         {demo ? <p className="text-sm text-muted-foreground">Article generation and review are available in your claimed workspace.</p> : articles === null ? (
@@ -161,7 +174,7 @@ export function ArticlesPanel({ siteSlug, liveUrl, isPublished, demo = false }: 
         {generation?.batch ? <p role="status" className="text-sm">{articleBatchMessage(generation.batch)}</p> : null}
         {generation?.unavailableReason ? <p className="text-sm text-muted-foreground">{generation.unavailableReason}</p> : null}
         {generation?.nextEligibleAt ? <p className="text-sm text-muted-foreground">Next batch available <time dateTime={generation.nextEligibleAt}>{new Date(generation.nextEligibleAt).toLocaleString()}</time>. An active subscription allows more frequent batches.</p> : null}
-        <Button onClick={generate} disabled={demo || generating || !generation?.canGenerate} size="sm">
+        <Button onClick={generate} disabled={demo || generating || Boolean(refreshError) || !generation?.canGenerate} size="sm">
           {generating || active ? <LoaderCircle className="size-4 animate-spin" /> : <Sparkles />}
           {generating || active ? "Batch in progress" : "Generate a batch of 4"}
         </Button>

@@ -83,7 +83,7 @@ describe("owner operations capability model", () => {
     }
   });
 
-  it("enables source monitoring and the photo library for owner-review verticals", () => {
+  it("enables articles, source monitoring and the photo library for owner-review verticals", () => {
     for (const id of [
       Vertical.RESTAURANT,
       Vertical.FOOD_RETAIL,
@@ -96,7 +96,7 @@ describe("owner operations capability model", () => {
       resolveOwnerOperations(Vertical.FOOD_RETAIL),
       resolveOwnerOperations(Vertical.LOCAL_SERVICE),
     ]) {
-      expect(ops.articles).toBe("not-yet");
+      expect(ops.articles).toBe("enabled");
       expect(ops.analytics).toBe("not-yet");
       expect(ops.bookingInbox).toBe("not-yet");
     }

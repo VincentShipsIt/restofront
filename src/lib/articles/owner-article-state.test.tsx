@@ -49,6 +49,7 @@ describe("owner article publication and ledger presentation", () => {
       const source = await Bun.file(new URL(`../../app/dashboard/${file}.tsx`, import.meta.url)).text();
       expect(source).toContain("<ArticlesPanel siteSlug={draft.slug} liveUrl=");
       expect(source).toContain("isPublished={");
+      expect(source).toContain("isOwnerOperationEnabled(ownerOperations.articles)");
     }
   });
   it("enforces authorized detail and site-scoped ledger reads in an isolated process", async () => {

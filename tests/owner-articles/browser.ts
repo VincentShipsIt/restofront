@@ -16,6 +16,8 @@ try {
   let articles: Array<Record<string, unknown>> = [];
   let postCount = 0;
   let detailCount = 0;
+  let failRefresh = false;
+  let failedRefreshCount = 0;
   let batch: Record<string, unknown> | null = { id: "batch-1", workflowRunId: "run-1", status: "RUNNING", acceptedCount: 0, rejectedCount: 0, requestedCount: 4 };
   let canGenerate = false;
   let nextEligibleAt: string | null = null;
@@ -27,6 +29,9 @@ try {
         batch = { ...batch, status: "RUNNING" };
         canGenerate = false;
         await route.fulfill({ json: { ok: true, runId: "run-2" } });
+      } else if (failRefresh) {
+        failedRefreshCount += 1;
+        await route.fulfill({ status: 503, json: { error: "Unavailable" } });
       } else await route.fulfill({ json: { batch, canGenerate, nextEligibleAt, unavailableReason: null } });
     } else if (path.endsWith("/article-1")) {
       detailCount += 1;
@@ -79,8 +84,46 @@ try {
     await expect(page.getByText("Next batch available", { exact: false })).toBeVisible();
     await expect(page.getByRole("button", { name: "Generate a batch of 4" })).toBeDisabled();
   }
+  await page.clock.install();
+  await page.clock.pauseAt(Date.now() + 1000);
+  batch = { ...batch, status: "RUNNING" };
+  await page.reload();
+  await expect(page.getByText("Your articles are being written.", { exact: false })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  failRefresh = true;
+  await page.clock.runFor(3000);
+  await expect(page.getByText("Could not refresh articles. Retrying in 6 seconds.")).toBeVisible();
+  expect(failedRefreshCount).toBe(1);
+  for (const [delay, nextDelay, failureCount] of [[6000, 12, 2], [12000, 24, 3], [24000, 48, 4]]) {
+    await page.clock.runFor(delay! - 1);
+    expect(failedRefreshCount).toBe(failureCount! - 1);
+    await page.clock.runFor(1);
+    await expect(page.getByText(`Could not refresh articles. Retrying in ${nextDelay} seconds.`)).toBeVisible();
+    expect(failedRefreshCount).toBe(failureCount!);
+  }
+  await page.clock.runFor(48_000);
+  await expect(page.getByText("Automatic refresh stopped after repeated failures. Retry to reconnect.")).toBeVisible();
+  expect(failedRefreshCount).toBe(5);
+  await page.clock.runFor(120_000);
+  expect(failedRefreshCount).toBe(5);
+  failRefresh = false;
+  const reconnected = page.waitForResponse((response) => response.url().endsWith("/generate") && response.status() === 200);
+  await page.getByRole("button", { name: "Retry article refresh" }).click();
+  await reconnected;
+  await expect(page.getByRole("button", { name: "Retry article refresh" })).toHaveCount(0);
+  failRefresh = true;
+  await page.clock.runFor(3000);
+  await expect(page.getByText("Could not refresh articles. Retrying in 6 seconds.")).toBeVisible();
+  expect(failedRefreshCount).toBe(6);
+  failRefresh = false;
+  await page.clock.runFor(6000);
+  await expect(page.getByRole("button", { name: "Retry article refresh" })).toHaveCount(0);
+  failRefresh = true;
+  await page.clock.runFor(3000);
+  await expect(page.getByText("Could not refresh articles. Retrying in 6 seconds.")).toBeVisible();
+  expect(failedRefreshCount).toBe(7);
   expect(errors).toEqual([]);
-  console.log("Owner article browser checks passed: full safe review, approval, live link, restored active generation, duplicate prevention, automatic drafts, every terminal outcome and cadence.");
+  console.log("Owner article browser checks passed: full safe review, approval, live link, restored active generation, duplicate prevention, automatic drafts, every terminal outcome, cadence, bounded exponential refresh backoff, manual recovery and success reset.");
 } finally {
   await browser.close();
   server.stop(true);
