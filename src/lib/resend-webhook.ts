@@ -23,11 +23,14 @@ export function verifyResendWebhook(
     return { ok: false, status: 400, error: "Invalid signature" };
   }
   try {
-    const payload: unknown = new Webhook(secret).verify(rawBody, {
+    new Webhook(secret).verify(rawBody, {
       "svix-id": svixId,
       "svix-timestamp": svixTimestamp,
       "svix-signature": svixSignature,
     });
+    // Svix 2.3 verifies authenticity without returning the decoded payload.
+    // Parse only after verification succeeds; callers validate the event schema.
+    const payload: unknown = JSON.parse(rawBody);
     return { ok: true, svixId, payload };
   } catch {
     return { ok: false, status: 400, error: "Invalid signature" };

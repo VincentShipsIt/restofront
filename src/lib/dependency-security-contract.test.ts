@@ -7,28 +7,28 @@ const lockfile = await Bun.file(path.join(repoRoot, "bun.lock")).text();
 
 const patches = [
   {
-    package: "@workflow/core@4.8.4",
-    file: "patches/@workflow%2Fcore@4.8.4.patch",
+    package: "@workflow/core@4.8.5",
+    file: "patches/@workflow%2Fcore@4.8.5.patch",
     dependency: "nanoid",
     from: "5.1.6",
     to: "5.1.16",
-    sha256: "e6872431c9b82f5ce2115e6a17e23740d39373a601e0ba061cc40da7cc6d79f5",
+    sha256: "12195861744c6d63472781fd83379257830e8742cd9a5ba961d90f6845670d9c",
   },
   {
-    package: "@workflow/world-local@4.3.0",
-    file: "patches/@workflow%2Fworld-local@4.3.0.patch",
+    package: "@workflow/world-local@4.4.0",
+    file: "patches/@workflow%2Fworld-local@4.4.0.patch",
     dependency: "undici",
     from: "7.28.0",
     to: "7.29.0",
-    sha256: "18e492ba1128c164e2be37b16bb100bd9c56b3b97aa9181cf812dda0a3b8d1ef",
+    sha256: "5b3ed8a7fa88ec829cf6cfed719524b7d173d2a9a21df9555c905529d72347e3",
   },
   {
-    package: "@workflow/world-vercel@4.7.0",
-    file: "patches/@workflow%2Fworld-vercel@4.7.0.patch",
+    package: "@workflow/world-vercel@4.7.1",
+    file: "patches/@workflow%2Fworld-vercel@4.7.1.patch",
     dependency: "undici",
     from: "7.28.0",
     to: "7.29.0",
-    sha256: "6aabb73040cd6d69a52a96883e10223f28bc6cd65a2518ffc702046f120a0601",
+    sha256: "96180ba987ae3b873631b66e5676a034a65e06aec2936996369b5dec2ea0935d",
   },
 ] as const;
 
@@ -92,7 +92,7 @@ describe("dependency security migration", () => {
       '"@workflow/world-vercel/undici": ["undici@7.29.0"',
     );
     expect(lockfile).toContain('"nanoid": ["nanoid@3.3.18"');
-    expect(lockfile).toContain('"undici": ["undici@8.10.0"');
+    expect(lockfile).toContain('"undici": ["undici@8.10.1"');
   });
 
   it("loads Prisma and exercises the exact Workflow dependency APIs", () => {
@@ -125,7 +125,7 @@ describe("dependency security migration", () => {
       postcssNanoid: "3.3.18",
       workflowLocalUndici: "7.29.0",
       workflowVercelUndici: "7.29.0",
-      rootUndici: "8.10.0",
+      rootUndici: "8.10.1",
       prismaSchema: path.join(repoRoot, "prisma/schema.prisma"),
       nanoidLength: 21,
       fastUri: "3.1.7",
